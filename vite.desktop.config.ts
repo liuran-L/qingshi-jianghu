@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: '.',
+  // GitHub Pages project sites are served below the repository name.
+  // Keep local desktop development at the site root.
+  base: process.env.GITHUB_ACTIONS ? '/qingshi-jianghu/' : '/',
   css: { postcss: { plugins: [tailwindcss()] } },
   resolve: {
     alias: {
