@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { BrowserSaveRepository } from '../lib/game/save-repository.ts';
+import { createInitialGame, advanceGameTime } from '../lib/game/engine.ts';
+import { beginSession, saveCheckpoint, returnToTitle, initialScreen, startNewJourney, sendToMap, takeMapSnapshot } from '../lib/game/session.ts';
+import { rememberSceneReturn, consumeSceneReturn } from '../lib/game/save-operations.ts';
+void test('U01 主界面默认、旧档保护、取消与确认返回不写档、地图会话清除', async t => {
+  const old = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const values = new Map<string, string>();
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (k: string) => values.get(k) ?? null, setItem: (k: string,v: string) => values.set(k,v), removeItem: (k: string) => values.delete(k) } });
+  t.after(() => { if (old) Object.defineProperty(globalThis, 'localStorage', old); else Reflect.deleteProperty(globalThis, 'localStorage'); });
+  const repo = new BrowserSaveRepository(), a = createInitialGame('旧客'), b = createInitialGame('新客');
+  assert.equal(initialScreen(), 'title'); assert.equal((await repo.list()).some(s => s.exists), false);
+  assert.equal(await beginSession(repo), true); await saveCheckpoint(repo, a);
+  const started = await startNewJourney(repo, '另一旅人'); assert.equal(started.player.name, '另一旅人'); assert.equal(started.worldMinutes, a.storyStartedAtMinutes);
+  assert.equal(await beginSession(repo), false); assert.equal(await saveCheckpoint(repo, b), false);
+  assert.deepEqual(await repo.load('auto'), a);
+  const entries = [...values];
+  sendToMap(b); assert.deepEqual(takeMapSnapshot(), b); assert.equal(takeMapSnapshot(), null);
+  rememberSceneReturn(b); sendToMap(b);
+  assert.equal(returnToTitle(b, false), b); assert.deepEqual([...values], entries);
+  assert.equal(returnToTitle(b, true), null); assert.equal(consumeSceneReturn(), null); assert.equal(takeMapSnapshot(), null);
+  assert.deepEqual([...values], entries);
+  await beginSession(repo, 'auto'); await saveCheckpoint(repo, advanceGameTime(a, 1));
+  const summary = (await repo.list())[0]; assert.equal(summary.storyDay, 1); assert.match(summary.characterStatus!, /气血/); assert.equal(summary.journeyStatus, '进行中');
+});

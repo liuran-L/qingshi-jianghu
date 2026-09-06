@@ -1,0 +1,293 @@
+{
+  "version": 6,
+  "started": true,
+  "player": {
+    "name": "第三阶段旧档",
+    "abilities": {
+      "martial": 2,
+      "agility": 3,
+      "insight": 3,
+      "eloquence": 2,
+      "vigilance": 3,
+      "medicine": 1
+    },
+    "health": 78,
+    "maxHealth": 100,
+    "qi": 30,
+    "maxQi": 30,
+    "injury": "轻伤",
+    "poison": "未确认",
+    "fatigue": 65,
+    "maxFatigue": 100,
+    "woundUntreatedMinutes": 0,
+    "hasRoadPass": false,
+    "money": 20,
+    "reputation": 0,
+    "chivalry": 0,
+    "infamy": 0,
+    "alive": true,
+    "deathCause": null
+  },
+  "locationId": "gate",
+  "worldMinutes": 5340,
+  "selectedNpcId": "ma-sandao",
+  "knownLocationIds": [
+    "gate"
+  ],
+  "npcKnowledge": {
+    "ma-sandao": {
+      "observed": true,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "su-wantang": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "gu-qinghe": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "ning-buping": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "qiao-wu": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "shen-yanqiu": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "yue-hansheng": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    },
+    "lu-guanlan": {
+      "observed": false,
+      "matched": false,
+      "knownName": null,
+      "knownIdentity": null,
+      "learnedFacts": []
+    }
+  },
+  "npcStates": {
+    "ma-sandao": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "su-wantang": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "gu-qinghe": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "ning-buping": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "qiao-wu": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "shen-yanqiu": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "yue-hansheng": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    },
+    "lu-guanlan": {
+      "trust": 0,
+      "favor": 0,
+      "memory": {
+        "topics": {},
+        "statements": [],
+        "evidence": [],
+        "appliedEvents": []
+      },
+      "attitude": 0,
+      "suspicion": 0,
+      "hostility": 0,
+      "informedRiverGang": false,
+      "searchedPlayer": false,
+      "detainedPlayer": false,
+      "claimBeliefs": {}
+    }
+  },
+  "playerKnownFactIds": [],
+  "playerClaims": [],
+  "lodgingRecords": [],
+  "conversationTurns": {},
+  "storyStartedAtMinutes": 5340,
+  "gatePhase": "questioning",
+  "gateAccess": false,
+  "knownClueIds": [
+    "attack-phrase"
+  ],
+  "inventoryItemIds": [],
+  "triggeredWorldEventIds": [
+    "roadside-ambush"
+  ],
+  "knownWorldEventIds": [
+    "roadside-ambush"
+  ],
+  "worldEventOutcomes": {
+    "roadside-ambush": "账房失踪，主角负伤抵达城门。"
+  },
+  "dialogue": [
+    {
+      "id": "line-1788512879872-0",
+      "speaker": "旁白",
+      "text": "雨水冲淡了荒道上的血。你醒来时，同行者已经失散，路引和部分财物不知所踪。左肋的伤口仍在渗血。",
+      "kind": "narration"
+    },
+    {
+      "id": "line-1788512879872-1",
+      "speaker": "旁白",
+      "text": "昏沉中，你只记得袭击者反复喊着一句：“找丁字十七。”暮鼓将响，青石县是天黑前唯一能赶到的避处。",
+      "kind": "narration"
+    },
+    {
+      "id": "line-1788512879872-2",
+      "speaker": "旁白",
+      "text": "你拖着湿透的行囊来到城门，雨云正压过斑驳城楼。",
+      "kind": "narration"
+    },
+    {
+      "id": "line-1788512879872-3",
+      "speaker": "旁白",
+      "text": "一个脸颊带刀疤的差役拦在道中，手始终没有离开腰间铁尺。",
+      "kind": "narration"
+    },
+    {
+      "id": "line-1788512879872-4",
+      "speaker": "腰挂铁尺的守门差役",
+      "text": "“站住。路引拿出来。哪里人，来青石县做什么？”",
+      "kind": "npc"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-1788512879872-5",
+      "atMinutes": 5340,
+      "type": "system",
+      "text": "第三阶段旧档在荒道遇袭后抵达青石县城门。"
+    }
+  ]
+}
