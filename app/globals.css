@@ -86,3 +86,12 @@ button { cursor: pointer; }
 .art-learn { margin-top: .75rem; padding: .5rem 1rem; border: 1px solid #7f362b; color: #7f362b; cursor: pointer; }
 .knowledge-toggle { display: block; width: 100%; text-align: left; padding: .75rem .5rem; cursor: pointer; }
 .art-node > span:last-child { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+
+/* 画面失败时保留地点文本和对话；层叠不拦截选项。 */
+.scene-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; opacity:.62; }
+.image-fallback { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:1rem; background:#536356; color:#f0ead8; text-align:center; padding:1rem; }
+.image-fallback small { font-size:.75rem; }
+.character-portrait { z-index:2; }
+
+.story-stage > div { background:linear-gradient(90deg,#101c17cf,#101c1740); padding:.6rem; }
+@media (max-width:639px) { .scene-description { display:block; font-size:.8rem; line-height:1.6; } }

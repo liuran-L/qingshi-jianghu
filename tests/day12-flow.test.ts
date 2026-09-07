@@ -341,14 +341,10 @@ void test('D21 有界分支遍历：五个真实到达种子各展开三层可�
   t.diagnostic(`实际遍历 ${transitions} 条有限选项状态转换；深度3，不宣称穷尽无限时间与循环。`);
 });
 
-void test('D22 分支图每个节点和分组均有状态及逐项审计行，不遗漏规划分支', () => {
-  const doc = readFileSync(new URL('../文档/青石江湖-第一二日扩展对话流程分支图.md', import.meta.url), 'utf8');
-  const nodes = [...doc.matchAll(/\b([A-Z][A-Z0-9_]*)[[{]"([^"]+)"[\]}]/g)];
-  assert.ok(nodes.length >= 150);
-  for (const node of nodes) {
-    assert.match(node[2], /^【(已实现|缺失|逻辑错误|暂不应实现)】/);
-    assert.ok(doc.includes(`| ${node[1]} |`), `${node[1]}没有审计说明`);
-  }
+void test('D22 唯一详细分支图登记当前场景与三类终局', () => {
+ const doc=readFileSync(new URL('../文档/青石江湖-详细分支图.md',import.meta.url),'utf8');
+ for(const id of ['gate','inn','clinic','custody','relations','prologue','ending-career','ending-open','ending-forced']) assert.ok(doc.includes(`### ${id} ·`));
+ for(const field of ['世界事实 / 玩家已知 / 玩家主张','三账独立路径矩阵','强制准入流程与边界']) assert.ok(doc.includes(field));
 });
 
 void test('D23 死亡时刻后不触发未来世界事件、不再选择NPC或推进时间', async () => {

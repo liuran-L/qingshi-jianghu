@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createInitialGame,movePlayer,advanceGameTime} from '../lib/game/engine.ts';
+import {click} from './helpers/campaign.ts';
+import {getAvailableActions} from '../lib/game/limited-actions.ts';
+import {encodeSave,decodeSave} from '../lib/game/storage.ts';
+void test('A06 拒绝住宿登记不留下姓名，次日掌柜回声与医馆知识隔离',async()=>{
+ let s=createInitialGame('过客');
+ for(const id of ['tell-attack','ask-lodging','ask-clinic','request-entry'] as const)s=await click(s,id);
+ s=movePlayer(s,'inn');s=await click(s,'open-dayone');s=await click(s,'register-refuse');
+ assert.equal(s.lodgingRecords.length,0);assert.equal(s.dayOne.registeredName,null);
+ assert.ok(!getAvailableActions(s,s.selectedNpcId).some(a=>a.id==='rest-night'));
+ s=movePlayer(s,'clinic');s=await click(s,'request-treatment');s=movePlayer(s,'inn');s=advanceGameTime(s,720);
+ const doctor=structuredClone(s.npcKnowledge['shen-yanqiu']);
+ s=await click(s,'open-daytwo');s=await click(s,'inn-echo');
+ assert.ok(s.dialogue.some(l=>l.text.includes('昨日拒绝登记')));
+ assert.equal(s.dayTwo.innEchoSeen,true);assert.deepEqual(s.npcKnowledge['shen-yanqiu'],doctor);
+ assert.ok(!getAvailableActions(s,s.selectedNpcId).some(a=>a.id==='inn-echo'));
+ assert.deepEqual(decodeSave(encodeSave(s)),s);
+});

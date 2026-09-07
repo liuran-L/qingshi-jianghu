@@ -354,6 +354,7 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
     next = tell(next, '三两交还回春堂账房，序章诊金债清了。病案授权不随还钱改变。');
   } else if (aid === 'rumors') {
     next = elapse(next, 15);
+    if (!next.player.alive || next.campaign.ending) return next;
     for (const [eventId, result] of Object.entries(next.campaign.resolved)) {
       if (!result.witnessed) { next = tell(next, `行旅带来的消息 · ${storyEvents.find(e => e.id === eventId)!.title}：${result.text}`); result.witnessed = true; }
     }
@@ -472,7 +473,7 @@ function performBattle(s:GameState,event:string,tactic:BattleTactic):GameState {
     next.campaign.finaleStep=1;
   }
   next.campaign.evidence=next.campaign.evidence.filter(id=>!verdict.lostEvidence.includes(id));
-  next=tell(next,`${battles[event].title} · ${verdict.outcome}。己方力量${verdict.power}，对方压力${verdict.target}；损血${verdict.damage}、耗气${verdict.qiCost}、用银${verdict.cost}。${verdict.lostEvidence.length?'遗失随身材料：'+verdict.lostEvidence.join('、')+'。':''}${verdict.companionInjuries.length?'同伴为断后负伤，之后助阵力量降低。':''}${context.allies.map(a=>a.style).join('、')}`);
+  next=tell(next,`${battles[event].title} · ${verdict.outcome}。己方力量${verdict.power}，对方压力${verdict.target}；损血${verdict.damage}、耗气${verdict.qiCost}、用银${verdict.cost}。${verdict.lostEvidence.length?'遗失随身材料：'+verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')+'。':''}${verdict.companionInjuries.length?'同伴为断后负伤，之后助阵力量降低。':''}${context.allies.map(a=>a.style).join('、')}`);
   if(!next.player.health) {next.player.alive=false;next.player.deathCause=`${battles[event].title}中气血耗尽：力量${verdict.power}/${verdict.target}，战前已明示致命风险，损血${verdict.damage}。`;return endLife(next,'dead');}
   if(tactic==='surrender') return endLife(next,'prison');
   return next;

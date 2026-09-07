@@ -5,8 +5,6 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: '.',
-  // GitHub Pages project sites are served below the repository name.
-  // Keep local desktop development at the site root.
   base: process.env.GITHUB_ACTIONS ? '/qingshi-jianghu/' : '/',
   css: { postcss: { plugins: [tailwindcss()] } },
   resolve: {
@@ -15,7 +13,15 @@ export default defineConfig({
       'next/navigation': fileURLToPath(new URL('./desktop/next-navigation-shim.ts', import.meta.url)),
     },
   },
-  plugins: [react()],
+  plugins: [react(), {
+    name: 'desktop-entry',
+    configureServer(server) {
+      server.middlewares.use((request, _response, next) => {
+        if (request.url === '/' || request.url?.startsWith('/?')) request.url = request.url.replace('/', '/index.desktop.html');
+        next();
+      });
+    },
+  }],
   server: { port: 1420, strictPort: true },
   build: { outDir: 'dist-desktop', emptyOutDir: true, rolldownOptions: { input: fileURLToPath(new URL('./index.desktop.html', import.meta.url)) } },
 });

@@ -1,9 +1,10 @@
 import type { DialogueLine, GameState } from './types.ts';
 import { npcs } from './world.ts';
+import { assetPath } from '../ui/asset-path.ts';
 
 /** 显示层资源登记；替换 src 即可换正式美术，不接触剧情或身份结算。 */
 export const portraits: Record<string, { src: string; position: string }> = Object.fromEntries(
-  ['player', ...npcs.map(n => n.id)].map(id => [id, { src: `/portraits/${id}.svg`, position: 'center bottom' }]),
+  ['player', ...npcs.map(n => n.id)].map(id => [id, { src: assetPath(`portraits/${id}.svg`), position: 'center bottom' }]),
 );
 export function portraitForLine(state: GameState, line: DialogueLine | undefined) {
   if (!line || line.kind === 'narration') return null;

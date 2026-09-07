@@ -1,5 +1,7 @@
 'use client';
 
+import { ReliableImage } from '../reliable-image';
+import { assetPath } from '@/lib/ui/asset-path';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Clock3, MapPin, Navigation, Wind } from 'lucide-react';
@@ -108,7 +110,7 @@ export function GameMap({ navigate, replace }: { navigate: (path: string) => voi
             >
               <span className="map-location-mark"><MapPin /></span>
               <span className="map-location-name">{location.name}</span>
-              <span className="map-location-note">{isCurrent ? '你在此处' : blockedByGate ? '尚未获准入城' : '选择此处'}</span>
+              <span className="map-location-note">{isCurrent ? '你在此处' : blockedByGate ? '当前无法动身' : '选择此处'}</span>
             </button>
           );
         })}
@@ -129,6 +131,7 @@ export function GameMap({ navigate, replace }: { navigate: (path: string) => voi
               一旦确认动身，江湖时间会继续推进。确认前你可以取消此次选择。
             </DialogDescription>
           </DialogHeader>
+          {destination && <ReliableImage src={assetPath(`scenes/${destination.id}.svg`)} alt={`${destination.name}的水墨画卷`} className="h-36 w-full object-cover" />}
           {estimate && (
             <div className="space-y-3 border-y border-ink/15 py-4 text-sm">
               <p className="flex items-center justify-between"><span className="flex items-center gap-2"><Navigation className="size-4" />基础路程</span><b>{estimate.baseMinutes}分钟</b></p>

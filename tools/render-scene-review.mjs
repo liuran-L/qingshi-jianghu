@@ -1,0 +1,12 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {eventReviews,specialReviews,proofPaths,reviewErrors} from './scene-review.ts';
+if(reviewErrors().length) throw Error(reviewErrors().join('；'));
+const path='文档/青石江湖-详细分支图.md';
+let doc=readFileSync(path,'utf8').split('## P1 逐场景准入登记')[0];
+doc+='## P1 逐场景准入登记\n\n内部审查不进入玩家界面。三条独立路径对应全篇官印、运输、药库三类核心证明；序章尸体实名是可选封存分支的局部核验，不是全篇必经门槛。P1复用既有事件，不新增人物探索或亲密度。\n\n';
+for(const r of eventReviews) doc+=`### ${r.id} · ${r.title}\n\n- 固定行动与缺席结果：${r.defaultResult}窗口在第${r.deadline}日09:00截止，不等待玩家。\n- 介入目标与即时反馈：${r.feedback.join('；')}\n- 拒绝、观望、收益与代价：${r.refusal}。\n- 长期回声与重开：${r.echo}。原事件不重开；缺席结果从行旅消息取得，替代来源在后续窗口出现。\n- 世界事实 / 玩家已知 / 玩家主张：resolved保存结果；witnessed只在目击或打听后为真；不为缺席补写立场、承诺。NPC边界：${r.knowledge}。\n- 替代信息路径：见三账独立路径矩阵；漏过此场景仍可谋生、接续、远走。\n- 状态与迁移：campaign.resolved / journal / flags / evidence / npcAlive与npcStates.memory.appliedEvents；无新增字段，原事件键和关系记忆防重复，旧档不补选择。\n- 自动化：A01、A02、A03；既有L系列、G05和战斗测试。真人观察：能否说清保住与错过的事，以及下一处入口。\n\n`;
+doc+='### 三账独立路径矩阵\n\n| 核心证明 | 三个独立场景与行动（内部标识） |\n| --- | --- |\n';
+for(const [proof,paths] of Object.entries(proofPaths)) doc+=`| ${proof} | ${paths.map(p=>p.join(' / ')).join('；')} |\n`;
+for(const [id,title,world,refusal,echo,fields,tests] of specialReviews) doc+=`\n### ${id} · ${title}\n\n- 固定结果：${world}。\n- 介入、拒绝与取舍：${refusal}。\n- 即时反馈与长期回声：${echo}。\n- 事实 / 已知 / 主张：只记录实际行为；NPC不共享城门、客栈、医馆私下记录。\n- 替代路径：三账矩阵提供其他材料；错过可选互动仍可选择其他人生方向。明确死亡、拘押除外。\n- 状态、迁移、防重：${fields}；复用字段，按原默认值兼容，不补旧选择；原动作与话题锁防重复。\n- 自动化：${tests}。真人观察：当前权限、收益代价与下一步入口；终局只可存读回看。\n`;
+doc+='\n### 强制准入流程与边界\n\n先修改本清单和模板，再修改代码。A01检查十九事件、模板和三账来源。新增沉默必须单独证明收益、代价、后续回声，同轮不得有等价按钮；低风险闲谈不新增永久计数器。P2人物探索、关系阶段、小剧情谋生不标记为已实现。三类终局为人生立业、退隐远走、死亡拘押，另核验序章三暂结。\n';
+writeFileSync(path,doc);
