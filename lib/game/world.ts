@@ -42,13 +42,17 @@ export const knownFacts: KnownFactDefinition[] = [
   { id: 'gate-selective-inspection', text: '青石县近日严查普通行旅，但某些货车似乎不受盘查。' },
   { id: 'guard-search-threat', text: '城门差役会以搜查和扣押惩治顶撞者。' },
   { id: 'ma-public-bribe-caution', text: '守门差役在同僚面前刻意避谈银钱。' },
-  { id: 'ma-private-bribe-signal', text: '马三刀可能接受私下打点，但不肯在人前留下把柄。' },
-  { id: 'ma-cart-deflection', text: '马三刀以“漕运关防”为由回避货车免检之事。' },
+  { id: 'ma-private-bribe-signal', text: '守门差役可能接受两两银子的私下打点，但不肯在人前留下把柄。' },
+  { id: 'ma-cart-deflection', text: '守门差役以“漕运关防”为由回避货车免检之事。' },
   { id: 'ma-ding17-reaction', text: '守门差役听见“丁字十七”后向城内使了个眼色，用意尚不清楚。' },
   { id: 'doctor-wound-residue', text: '沈砚秋在你的伤口残留物中辨出一股异常苦味，但还不能断定具体毒物。' },
   { id: 'clinic-corpse-details', text: '河边无名尸的创口很浅，却因持续失血而死，衣物上没有可供辨认身份的物件。' },
   { id: 'corpse-wound-link', text: '第二日河边无名尸与自己的伤口可能都接触过乌鳞散。' },
   { id: 'inn-corpse-rumor', text: '今晨河边发现一具无名尸，后来被送往回春堂。' },
+  { id: 'baggage-watch-mark', text: '行囊外带内侧有一道新划的短痕，像是供人辨认这只行囊的记号；留下者与用意都还不明。' },
+  { id: 'inn-arrival-inquiry', text: '天未亮时有人到客栈问过：今日是否会有带伤、背湿行囊的外乡客投店；来人午后会换地方。' },
+  { id: 'day-end-watch-rumor', text: '换班脚夫听见有人打听一个今日进城的带伤外乡客；问话者明早会去码头改搭别船。' },
+  { id: 'next-morning-moving-lead', text: '现有迹象指向同一件事：有人预先留意你的到来，并会在次日更换接头的人、船或落脚处。' },
 ];
 
 export const inventoryItems: InventoryItemDefinition[] = [

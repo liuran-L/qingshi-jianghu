@@ -140,8 +140,8 @@ void test('危险言论与顶撞会累积怀疑并触发搜查', async () => {
 void test('搜查发现残片会产生扣留结果而不是随机死亡', async () => {
   let game = createInitialGame('燕小六');
   game = await interact(game, request('inspect-bag', '检查行囊。', 'ma-sandao', 'action'));
-  game = await interact(game, request('stay-silent', '沉默。'));
-  game = await interact(game, request('challenge-search', '凭什么查我？'));
+  game = await interact(game, request('tell-pass-lost', '路引遗失。'));
+  game = await interact(game, request('mention-ding17', '你听过丁字十七吗？'));
   game = await interact(game, request('request-entry', '我要进城。'));
   assert.equal(game.gatePhase, 'searched');
   game = await interact(game, request('submit-search', '接受搜查。', 'ma-sandao', 'action'));

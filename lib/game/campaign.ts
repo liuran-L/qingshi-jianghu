@@ -24,6 +24,16 @@ function tell(s: GameState, text: string, speaker = '旁白', kind: DialogueLine
   const entries: DialogueLine[] = parts.filter(t => t.trim()).map((t, i) => ({ id: `journey:${s.worldMinutes}:${s.dialogue.length + i}`, speaker, text: t, kind, ...(npcId ? { portraitId: npcId } : {}), tone: kind === 'npc' ? tones[npcId ?? ''] ?? '交谈' : kind === 'player' ? '你的选择' : '叙述' }));
   return { ...s, dialogue: [...s.dialogue, ...entries] };
 }
+const campaignNameDisclosure: Record<string, string> = {
+  'ma-sandao': '复核簿当众点到守门差役的姓名：马三刀。',
+  'su-wantang': '搬货伙计当面唤她“苏晚棠”，她应了一声。',
+  'ning-buping': '佩刀汉子先报姓名：“宁不平，负责此处查验。”',
+  'qiao-wu': '河上脚夫替他让路，招呼道：“乔五爷，船位留着。”',
+  'shen-yanqiu': '医者把署着“沈砚秋”的药牌放回案头。',
+  'yue-hansheng': '老者先报了姓名：“岳寒声。”',
+  'lu-guanlan': '送来的名帖写着“陆观澜”，负剑客接过后没有否认。',
+  'gu-qinghe': '书吏当面称他“顾清河大人”，姓名与官署名册相合。',
+};
 const action = (id: string, label: string): LimitedAction => ({ id: `journey-${id}`, label, input: label, mode: 'action' });
 const stamp = (s: GameState, id: string, text: string, money = 0, debt = 0) => {
   s.campaign.journal.push({ at: s.worldMinutes, action: id, money, debt, text });
@@ -221,8 +231,11 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       next.campaign.activeEvent = event.id;
       next.locationId = event.location;
       next.selectedNpcId = null;
+      if (next.campaign.npcAlive[event.speaker] && next.npcKnowledge[event.speaker].knownName !== coreNames[event.speaker]) {
+        next = tell(next, campaignNameDisclosure[event.speaker] ?? `${coreNames[event.speaker]}当面报出姓名。`);
+        next.npcKnowledge = { ...next.npcKnowledge, [event.speaker]: { ...next.npcKnowledge[event.speaker], observed: true, matched: true, knownName: coreNames[event.speaker] } };
+      }
       for (let i = 0; i < event.opening.length; i++) next = tell(next, event.opening[i], i === 1 && next.campaign.npcAlive[event.speaker] ? coreNames[event.speaker] : '旁白', i === 1 && next.campaign.npcAlive[event.speaker] ? 'npc' : 'narration', i === 1 && next.campaign.npcAlive[event.speaker] ? event.speaker : undefined);
-      if (next.campaign.npcAlive[event.speaker]) next.npcKnowledge = { ...next.npcKnowledge, [event.speaker]: { ...next.npcKnowledge[event.speaker], observed: true, matched: true, knownName: coreNames[event.speaker] } };
     }
   } else if (aid.startsWith('choose:') || aid.startsWith('leave:')) {
     const [, eventId, optionId] = aid.split(':');
@@ -321,10 +334,12 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       next = tell(next, `你把${routeNames[route]}实践中的失误逐一重做，耗去三两纸墨器材钱和两点阅历。四小时没有白过，技艺精进一级；这一门最多研习三级。`);
     }
   } else if (aid.startsWith('pledge:')) {
-    next.campaign.pledge = aid.split(':')[1] as LifeRoute;
-    const npcId = patron[next.campaign.pledge];
+    const pledgedRoute = aid.split(':')[1] as LifeRoute;
+    next.campaign.pledge = pledgedRoute;
+    const npcId = patron[pledgedRoute];
+    if (next.npcKnowledge[npcId].knownName !== coreNames[npcId]) next = tell(next, campaignNameDisclosure[npcId] ?? `${coreNames[npcId]}当面报出姓名。`);
     next.npcKnowledge = { ...next.npcKnowledge, [npcId]: { ...next.npcKnowledge[npcId], observed: true, matched: true, knownName: coreNames[npcId] } };
-    next = tell(next, `你与${coreNames[patron[next.campaign.pledge]]}立下${routeNames[next.campaign.pledge]}约定。额外工钱对应优先出力的义务；想转向，可以明说解约，不能抹去旧约。`);
+    next = tell(next, `你与${coreNames[npcId]}立下${routeNames[pledgedRoute]}约定。额外工钱对应优先出力的义务；想转向，可以明说解约，不能抹去旧约。`);
   } else if (aid === 'break') {
     const old = next.campaign.pledge!;
     pay(next, 6); next.campaign.pledge = null;

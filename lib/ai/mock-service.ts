@@ -29,7 +29,11 @@ export const mockAIService: DialogueAIService = {
       case 'challenge-search':
         return proposal('provoke', turns === 0 ? '“嘴倒硬。路引拿不出来，便把行囊解开，一件件验。”' : '“再多一句，便随我去班房里慢慢说。”', '守门差役横过铁尺，先招手唤近另一名差役。', ['search']);
       case 'offer-bribe':
-        return proposal('bribe', '“公门盘查，谁同你谈银子？收起来。先把路引给我看明白。”', '他话说得响亮，眼睛先扫过身后同僚，没有伸手碰你的钱。');
+        return proposal('bribe', '“两两，换这一次不细查。进城后别说在我这里见过什么。”', '他借着登记簿遮住手，收走了两两碎银。');
+      case 'present-gate-document':
+        return proposal('request-service', '“文书能对上。登记过便进，出了差错仍要回来问话。”', '差役核过印记，将文书原样交回。');
+      case 'show-gate-fragment':
+        return proposal('request-service', '“残缺公文也得登记来源。东西先扣，人到墙边候复核。”', '差役当面记下残片字样和经手人，将原物封在纸袋里。');
       case 'request-entry':
         return proposal('request-service', '“说得清不清，不由你定。站直了，让我再看一遍。”');
       case 'submit-search':
@@ -37,7 +41,7 @@ export const mockAIService: DialogueAIService = {
       case 'inspect-wound':
         return proposal('inspect', undefined, '伤口并不算深，却迟迟不能止血。皮肉边缘泛着暗色，雨水冲过时传来一阵细密灼痛。以你现在的医术，还无法判断原因。');
       case 'inspect-bag':
-        return proposal('inspect', undefined, '你摸遍湿透的行囊，在一道被割开的夹层里发现了沾血的公文残片。纸上只能辨出“丁字十七”与半枚县衙火漆。你不记得自己曾把它放进去。');
+        return proposal('inspect', undefined, '你摸遍湿透的行囊，在割开的夹层里发现沾血的公文残片。纸上只能辨出“丁字十七”与半枚县衙火漆。外带内侧还有一道很新的短划痕，像是给认得记号的人辨包用。');
       case 'inspect-fragment':
         return proposal('inspect', undefined, view.player.fatigue >= 85 ? '雨光在模糊的字迹上晃动。你头痛得厉害，暂时看不出比先前更多的东西。' : '你再次展开残片。翻到背面时，一小块鱼鳞形黑蜡在雨光中发亮，纸上还留着极淡的苦涩药味。');
       case 'observe-gate':

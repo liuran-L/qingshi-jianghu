@@ -2,7 +2,7 @@ import type { GameState, InteractionRequest, LimitedActionId, NpcMemory, NpcStat
 import { getLocation } from './world.ts';
 
 export const socialNpcIds = ['ma-sandao', 'su-wantang', 'lu-guanlan', 'shen-yanqiu'];
-export const topicIds: LimitedActionId[] = ['tell-attack', 'tell-pass-lost', 'ask-guard-name', 'stay-silent', 'ask-lodging', 'ask-clinic', 'mention-ding17', 'challenge-search', 'offer-bribe', 'request-entry', 'submit-search', 'ask-name', 'ask-news', 'request-room', 'request-treatment', 'ask-corpse', 'compare-corpse-wound'];
+export const topicIds: LimitedActionId[] = ['tell-attack', 'tell-pass-lost', 'ask-guard-name', 'stay-silent', 'ask-lodging', 'ask-clinic', 'mention-ding17', 'challenge-search', 'offer-bribe', 'request-entry', 'show-gate-fragment', 'present-gate-document', 'submit-search', 'ask-name', 'ask-news', 'request-room', 'request-treatment', 'ask-corpse', 'compare-corpse-wound'];
 export const emptyNpcMemory = (): NpcMemory => ({ topics: {}, statements: [], evidence: [], appliedEvents: [] });
 const day = (state: GameState) => Math.floor(state.worldMinutes / 1440);
 const bound = (value: number) => Math.max(-100, Math.min(100, value));
@@ -97,7 +97,7 @@ export function rememberNpcInteraction(before: GameState, after: GameState, requ
     const shown = showNpcEvidence(before, id, 'abnormal-wound');
     next = withMemory(next, id, { ...next.npcStates[id].memory, evidence: shown.npcStates[id].memory.evidence });
   }
-  if (request.actionId === 'submit-search' && before.inventoryItemIds.includes('ding17-fragment')) {
+  if ((request.actionId === 'submit-search' || request.actionId === 'show-gate-fragment') && before.inventoryItemIds.includes('ding17-fragment')) {
     next = withMemory(next, id, { ...next.npcStates[id].memory, evidence: [...new Set([...next.npcStates[id].memory.evidence, 'ding17-fragment'])] });
   }
   return next;

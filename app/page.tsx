@@ -2,7 +2,8 @@
 /* eslint-disable next/no-img-element -- 离线 SVG 立绘必须直接加载本地文件，桌面构建不依赖图片优化服务器。 */
 import { beginSession, startNewJourney, saveCheckpoint, sessionAutoAllowed, sendToMap, returnToTitle, initialScreen } from '@/lib/game/session';
 import { InventoryPanel } from './inventory-panel';
-import { nextStep } from '@/lib/ui/inventory';
+import { sceneGuidance } from '@/lib/ui/guidance';
+import { relationshipStage, relationshipStageChanges } from '@/lib/ui/relationships';
 import { ReliableImage } from './reliable-image';
 import { playerText, visibleLine } from '@/lib/ui/player-text';
 import { sceneFor } from '@/lib/ui/scenes';
@@ -80,7 +81,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const [name, setName] = useState('');
   const [dialogueIndex, setDialogueIndex] = useState(0);
   const [instantDialogue, setInstantDialogue] = useState(false);
-  const reveal = useDialogueReveal(visibleLine(game?.dialogue[game ? readingPosition(game, dialogueIndex).current : 0]), instantDialogue);
+  const reveal = useDialogueReveal(visibleLine(game?.dialogue[game ? readingPosition(game, dialogueIndex).current : 0], game ?? undefined), instantDialogue);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [actionTab, setActionTab] = useState('眼前');
   const [saveManagerMode, setSaveManagerMode] = useState<'save' | 'load' | null>(null);
@@ -88,6 +89,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const [, setSaveExists] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [notice, setNotice] = useState('');
+  const [relationshipNotice, setRelationshipNotice] = useState('');
   const [interactionBusy, setBusy] = useState(false);
   const [storageBusy, setStorageBusy] = useState(false);
   const busy = interactionBusy || storageBusy;
@@ -120,6 +122,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     const next = await startNewJourney(saveRepository, name);
     savedState.current = null; setSaveDirty(true);
     setScreen('title'); setInstantDialogue(false); setGame(next);
+    setRelationshipNotice('');
     setDialogueIndex(0);
   };
   const openMap = async () => {
@@ -139,9 +142,12 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     if (!game || !reveal.complete || busy || storageLock.current || interactionLock.current) return;
     interactionLock.current = true;
     setBusy(true);
+    setRelationshipNotice('');
     try {
       const result = await runAction(game, dialogueIndex, choice.id, selectedNpc?.id ?? null);
       if (result) {
+        const changes = relationshipStageChanges(game, result.state);
+        if (changes.length) setRelationshipNotice(changes.map((change) => `与${getNpcDisplayName(result.state, change.npcId)}的关系由${change.from}转为${change.to}。`).join(''));
         try { const saved = await saveCheckpoint(saveRepository, result.state); setSaveDirty(!saved); if (saved) savedState.current = result.state; } catch { setSaveDirty(true); setNotice('自动存档失败，进度仍在内存，请手动保存'); }
         setInstantDialogue(false); setGame(result.state); setDialogueIndex(result.dialogueIndex); setActionTab('眼前'); }
     } catch {
@@ -177,7 +183,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     savedState.current = restored; setSaveDirty(false);
     setInstantDialogue(true); setGame(restored); setKnowledgeRevision(value => value + 1);
     setDialogueIndex(Math.max(0, restored.dialogue.length - 1));
-    setSaveManagerMode(null); setBagOpen(false); setItemAction(null);
+    setSaveManagerMode(null); setBagOpen(false); setItemAction(null); setRelationshipNotice('');
     setNotice(`已读取${saveSlots.find((item) => item.id === slot)?.label ?? '存档'}`);
     window.setTimeout(() => setNotice(''), 1800);
   };
@@ -204,7 +210,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const discard = () => {
     setGame(returnToTitle(game, true)); setScreen('title'); setReturnOpen(false);
     savedState.current = null; setSaveDirty(false); setDialogueIndex(0); setName('');
-    setHistoryOpen(false); setBagOpen(false); setItemAction(null); setSaveManagerMode(null); setNotice('');
+    setHistoryOpen(false); setBagOpen(false); setItemAction(null); setSaveManagerMode(null); setNotice(''); setRelationshipNotice('');
   };
 
   if (!hydrated)
@@ -272,10 +278,11 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const selectedIdentity = selectedNpc ? getNpcVisibleIdentity(game, selectedNpc.id) : null;
   const knownGroups = knowledgeGroups(game);
   const currentDialogueIndex = readingPosition(game, dialogueIndex).current;
-  const currentLine = game.dialogue[currentDialogueIndex];
+  const currentLine = visibleLine(game.dialogue[currentDialogueIndex], game)!;
   const isLatestLine = currentDialogueIndex >= game.dialogue.length - 1 && reveal.complete;
   const confirmLine = () => { if (!reveal.complete) reveal.finish(); else if (currentDialogueIndex < game.dialogue.length - 1) { setInstantDialogue(false); setDialogueIndex(index => continueReading(game, index)); } };
   const limitedActions = getLimitedActions(game, selectedNpc?.id ?? null);
+  const guidance = sceneGuidance(game, limitedActions);
   const ending = lifeSummary(game) ?? endingSummary(game);
   const caseNotice = campaignActive(game) ? null : prologueNotice(game);
   const battleId = game.campaign.activeEvent && battles[game.campaign.activeEvent] ? game.campaign.activeEvent : game.campaign.finale === 'xia' && game.campaign.finaleStep === 0 ? 'finale' : null;
@@ -324,14 +331,14 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
           {notice}
         </output>
       )}
-
       <div className="mx-auto mt-4 grid max-w-[1320px] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_310px]">
         <section className="paper-panel min-w-0 overflow-hidden">
           {caseNotice && <output className="block border-b border-ink/20 bg-[#f7f1e3] p-5 leading-7" aria-live="polite">{caseNotice}</output>}
+          {relationshipNotice && <output className="block border-b border-ink/20 bg-[#f7f1e3] p-4 text-sm leading-6 text-cinnabar" aria-live="polite">{relationshipNotice}</output>}
           {ending && isLatestLine && <section className="border-b-2 border-cinnabar p-6 sm:p-8" aria-label="人生与案卷">
             <p className="text-sm tracking-widest text-cinnabar">{game.campaign.ending ? '此生定稿 · 可存读回看' : '案卷暂结 · 江湖未尽'}</p>
             <h2 className="mt-3 font-serif text-3xl">{ending.title}</h2>
-            <div className="mt-5 space-y-4 font-serif text-lg leading-8">{ending.facts.map((fact) => <p key={fact}>{fact}</p>)}</div>
+            <div className="mt-5 space-y-4 font-serif text-lg leading-8">{ending.facts.map((fact) => <p key={fact}>{playerText(fact, game)}</p>)}</div>
             {ending.stayPermitUntil !== null && <p className="mt-4 text-sm text-ink/65">暂留凭条有效至：{formatWorldTime(ending.stayPermitUntil)}</p>}
             <div className="mt-6 flex flex-wrap gap-3">
               <Button disabled={busy} onClick={() => void storageAction(async () => {
@@ -375,6 +382,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
                   <b className="font-serif text-ink">{selectedName}</b>
                   {selectedIdentity ? <span className="ml-2 text-cinnabar">你已确认：{selectedIdentity}</span> : null}
                   <p className="mt-1">{selectedNpc.observation}</p>
+                  <p>关系阶段：{relationshipStage(game, selectedNpc.id)}</p>
                 </div>
               )}
             </details>}
@@ -382,7 +390,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
             {battleId && !game.campaign.ending && <section className="my-4 border border-cinnabar/30 p-4 text-sm" aria-label="冲突形势"><h3 className="font-serif text-lg">{battles[battleId].title}</h3><p>起因：{battles[battleId].cause}；对手：{battles[battleId].opponent}</p><p>目标：{battles[battleId].goal}。失守可能失证、增加追查或使受护者遇害；撤退只保证尝试脱离自己，投降会结束旅程。</p><p>可助阵：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+' · 战斗等级 '+a.level+(a.injured?'（负伤）':'')).join('；') || '目前没有满足在场或约定、信任和敌意条件的同伴'}</p></section>}
             <section className="dialogue-window" aria-label="当前对话">
               <div className="dialogue-paper min-h-[170px] p-5 sm:p-6">
-                <button type="button" className="w-full text-left" onClick={confirmLine} aria-label={currentLine ? `${currentLine.speaker}：${playerText(currentLine.text)}。确认以跳过显示或继续。` : '此刻无人开口'}>
+                <button type="button" className="w-full text-left" onClick={confirmLine} aria-label={currentLine ? `${currentLine.speaker}：${playerText(currentLine.text, game)}。确认以跳过显示或继续。` : '此刻无人开口'}>
                 {currentLine ? (
                   <div className="font-serif text-lg leading-9">
                     <p className="mb-3 flex items-center gap-3"><span className={`speaker ${currentLine.kind === 'npc' ? 'npc' : ''}`}>{currentLine.speaker}</span><span className="text-sm font-normal text-ink/55">{currentLine.tone ?? (currentLine.kind === 'narration' ? '叙述' : currentLine.kind === 'player' ? '你的选择' : '交谈')}</span></p>
@@ -446,7 +454,10 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
                 <span className="text-xs text-ink/45">{currentDialogueIndex + 1} / {game.dialogue.length}</span>
               </div>
             </section>
-            <p className="mt-3 text-sm text-ink/70">{nextStep(game,limitedActions)}</p>
+            {isLatestLine && guidance.length > 0 && <aside className="mt-3 border-l-2 border-cinnabar/45 bg-[#f7f1e3] px-4 py-3 text-sm text-ink/70" aria-label="场景内可循去向">
+              <p className="font-serif text-ink">眼前可循的动静</p>
+              <ul className="mt-1 space-y-1">{guidance.map((item) => <li key={item.id}>{item.text}</li>)}</ul>
+            </aside>}
           </div>
         </section>
 
@@ -501,7 +512,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
               {[...game.logs].reverse().map((item) => (
                 <li key={item.id}>
                   <time className="block text-xs text-cinnabar">{formatWorldTime(item.atMinutes)}</time>
-                  {playerText(item.text)}
+                  {playerText(item.text, game)}
                 </li>
               ))}
             </ol>
@@ -546,8 +557,8 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
           <div className="max-h-[58vh] space-y-3 overflow-y-auto border-t border-ink/15 pt-4 pr-2">
             {game.dialogue.map((item) => (
               <p key={item.id} className={item.kind === 'player' ? 'pl-4 text-ink/70' : ''}>
-                <span className={`speaker ${item.kind === 'npc' ? 'npc' : ''}`}>{item.speaker}</span>
-                {playerText(item.text)}
+                <span className={`speaker ${item.kind === 'npc' ? 'npc' : ''}`}>{visibleLine(item, game)?.speaker}</span>
+                {playerText(item.text, game)}
               </p>
             ))}
           </div>

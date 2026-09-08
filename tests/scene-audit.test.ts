@@ -45,13 +45,11 @@ void test('A03 三类关键证明各有三个独立场景，真实备选行动�
   assert.equal(applyCampaignAction(after,`journey-choose:${id}:${choice}`),after);
  }
 });
-void test('A04 盘问沉默和医馆拒绝确有取舍，不补写姓名、诊断或他人知识',async()=>{
+void test('A04 盘问不把沉默做成通行路径；医馆拒绝确有取舍且不补写知识',async()=>{
  const original=createInitialGame('寡言客');
- const silent=await click(original,'stay-silent');
- assert.equal(silent.playerClaims.length,original.playerClaims.length);
- assert.ok(silent.npcStates['ma-sandao'].suspicion>original.npcStates['ma-sandao'].suspicion);
- assert.deepEqual(silent.npcKnowledge['shen-yanqiu'],original.npcKnowledge['shen-yanqiu']);
- assert.ok(!getAvailableActions(silent,silent.selectedNpcId).some(a=>a.id==='stay-silent'));
+ assert.ok(!getAvailableActions(original,original.selectedNpcId).some(a=>a.id==='stay-silent'));
+ assert.ok(!getAvailableActions(original,original.selectedNpcId).some(a=>a.id==='request-entry'));
+ assert.deepEqual(original.npcKnowledge['shen-yanqiu'],createInitialGame('寡言客').npcKnowledge['shen-yanqiu']);
  let s=await click(original,'tell-attack');s=await click(s,'ask-clinic');s=await click(s,'request-entry');s=movePlayer(s,'clinic');
  for(const id of ['open-dayone','medical-refuse','refuse-exam'] as const)s=await click(s,id);
  assert.equal(s.dayOne.interview,'refused');assert.equal(s.dayOne.consent,'refused');assert.equal(s.playerKnownFactIds.includes('medical-report'),false);
@@ -64,7 +62,7 @@ void test('A04 盘问沉默和医馆拒绝确有取舍，不补写姓名、诊�
 void test('A05 背包不恢复扣押物，已知与实物分开，死亡拘押只可查看',async()=>{
  let s=createInitialGame('持物客');s=await click(s,'inspect-bag');
  assert.ok(inventoryView(s,getAvailableActions(s,s.selectedNpcId)).some(i=>i.id==='ding17-fragment'));
- for(const id of ['stay-silent','challenge-search','request-entry','submit-search'] as const)s=await click(s,id);
+ for(const id of ['tell-pass-lost','mention-ding17','request-entry','submit-search'] as const)s=await click(s,id);
  assert.equal(s.gatePhase,'detained');assert.ok(s.knownClueIds.includes('ding17-fragment'));
  assert.ok(!inventoryView(s,getAvailableActions(s,s.selectedNpcId)).some(i=>i.id==='ding17-fragment'));
  assert.match(nextStep(s,getAvailableActions(s,s.selectedNpcId)),/复核|不能自由/);

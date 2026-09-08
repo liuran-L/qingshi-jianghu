@@ -105,7 +105,11 @@ export function resolveInteraction(
     case 'challenge-search':
       return { ...base, timeCostMinutes: 8, discoveredFactIds: ['guard-search-threat'], npcStatePatch: { suspicion: maState.suspicion + 2, hostility: maState.hostility + 1, attitude: maState.attitude - 1 } };
     case 'offer-bribe':
-      return { ...base, timeCostMinutes: 7, discoveredFactIds: ['ma-public-bribe-caution'], npcStatePatch: { suspicion: maState.suspicion + 1 } };
+      return { ...base, timeCostMinutes: 7, moneyDelta: -2, gatePhase: 'cleared', gateAccess: true, dialogue: '“两两，换这一次不细查。进城后别说在我这里见过什么。”', narration: '他借着整理登记簿收走碎银，侧身让开。你清楚记得这次通行付出的代价。' };
+    case 'present-gate-document':
+      return { ...base, timeCostMinutes: 5, gatePhase: 'cleared', gateAccess: true, dialogue: '“文书能对上。登记过便进，出了差错仍要回来问话。”', narration: '差役核过印记和登记，将文书原样交回。' };
+    case 'show-gate-fragment':
+      return { ...base, timeCostMinutes: 8, gatePhase: 'detained', gateAccess: false, removedItemIds: ['ding17-fragment'], npcStatePatch: { detainedPlayer: true, suspicion: maState.suspicion + 2, informedRiverGang: true }, dialogue: '“残缺公文也得登记来源。东西先扣，人到墙边候复核。”', narration: '差役当面记下残片字样和经手人，将原物封在纸袋里；你被留在城门一侧，仍可申请总捕头复核。', dangerLog: '你主动出示“丁字十七”残片；差役登记并暂扣原物，要求你留候复核。' };
     case 'request-entry':
       if (maState.suspicion >= 3) {
         return { ...base, timeCostMinutes: 4, gatePhase: 'searched', dialogue: '“疑点不少。行囊解开，查清了再谈进城。”', narration: '守门差役横过铁尺，另一名差役堵住了退路。' };
@@ -119,7 +123,7 @@ export function resolveInteraction(
     case 'inspect-wound':
       return { ...base, timeCostMinutes: 7, discoveredClueIds: ['abnormal-wound'], narration: hasGrowthNode(state, 'medicine-diagnosis') ? '你辨出创缘受刃时受力一致，伤口周围的淤色并非普通跌撞所致；这只是更准确的观察，不能替代医者验伤。' : undefined };
     case 'inspect-bag':
-      return { ...base, timeCostMinutes: 8, discoveredClueIds: ['ding17-fragment'], discoveredItemIds: ['ding17-fragment'] };
+      return { ...base, timeCostMinutes: 8, discoveredClueIds: ['ding17-fragment'], discoveredItemIds: ['ding17-fragment'], discoveredFactIds: ['baggage-watch-mark'], narration: '你在割开的夹层里摸到一张沾血的公文残片，只辨出“丁字十七”与半枚县衙火漆。更怪的是，行囊外带内侧多了一道新划的短痕，像给认得记号的人辨包用；你只能确认痕迹不旧，尚不知道是谁留下。' };
     case 'inspect-fragment':
       return state.player.fatigue >= 85 ? { ...base, timeCostMinutes: 6 } : { ...base, timeCostMinutes: 6, discoveredClueIds: ['black-scale-wax'] };
     case 'observe-gate':
@@ -144,6 +148,7 @@ export function resolveInteraction(
     case 'ask-name':
       return request.npcId === 'shen-yanqiu' ? { ...base, learnedNpcName: '沈砚秋', learnedNpcIdentity: '回春堂坐堂医' } : { ...base, npcLearnedFact: NAME_REFUSED };
     case 'observe-inn':
+      return state.playerKnownFactIds.includes('inn-arrival-inquiry') ? base : { ...base, discoveredFactIds: ['inn-arrival-inquiry'], narration: '你留意门边湿伞和柜上的水迹。伙计提到天未亮时有人先来问过：今日是否会有一个带伤、背湿行囊的外乡客投店。来人没留姓名，只说午后便换地方。' };
     case 'observe-clinic':
     case 'observe-scene':
     case 'ask-local-news':

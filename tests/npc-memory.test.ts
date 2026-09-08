@@ -46,14 +46,20 @@ void test('N01 八名NPC独立五维状态；纯规则写入、事件去重和�
   assert.equal(changeNpcRelationship(next, 'lu-guanlan', '上限', { trust: 999 }).npcStates['lu-guanlan'].trust, 100);
 });
 
-void test('N02 马三刀口供、拒贿与挑衅单次记忆，不把含糊回答判为谎言', async () => {
+void test('N02 马三刀口供、明码通融与按规质证单次记忆，不把含糊回答判为谎言', async () => {
   let state = await click(createInitialGame('甲'), 'tell-pass-lost');
   assert.equal(state.npcStates['ma-sandao'].memory.statements[0].truth, 'unknown');
-  state = await click(state, 'offer-bribe');
   assert.ok(!available(state, 'offer-bribe'));
   state = await click(state, 'challenge-search');
+  state = await click(state, 'open-dayone');
+  state = await click(state, 'step-aside');
+  state = await click(state, 'wait-at-gate');
+  state = await click(state, 'reapproach-gate');
+  state = await click(state, 'offer-bribe');
+  assert.ok(!available(state, 'offer-bribe'));
   assert.ok(!available(state, 'challenge-search'));
   assert.equal(state.npcStates['ma-sandao'].hostility, 1);
+  assert.equal(state.player.money, 18);
   assert.equal(await createActionRunner(mockAIService)(state, latestDialogueIndex(state), 'offer-bribe', state.selectedNpcId), null);
 });
 
@@ -126,7 +132,7 @@ void test('N06 沈砚秋费用不足锁定→资源达到条件重开→实际�
 void test('N07 自查不等于展示；搜查证物被扣后仍留下该NPC见过证物的记忆', async () => {
   let state = await click(createInitialGame('甲'), 'inspect-bag');
   assert.deepEqual(state.npcStates['ma-sandao'].memory.evidence, []);
-  for (const id of ['stay-silent', 'challenge-search', 'request-entry', 'submit-search'] as const) state = await click(state, id);
+  for (const id of ['tell-pass-lost', 'mention-ding17', 'request-entry', 'submit-search'] as const) state = await click(state, id);
   assert.deepEqual(state.npcStates['ma-sandao'].memory.evidence, ['ding17-fragment']);
   assert.deepEqual(state.inventoryItemIds, []);
   assert.deepEqual(state.npcStates['shen-yanqiu'].memory.evidence, []);

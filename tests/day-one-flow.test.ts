@@ -246,7 +246,7 @@ void test('F11 新分支组合→读档→保密病案授权→第三日既有�
 });
 
 void test('F12 搜查未扣物也能复核；无中生有的返还物与等待洗口供均被阻止', async () => {
-  let s = await steps(createInitialGame('核对客'), ['stay-silent', 'challenge-search', 'request-entry', 'submit-search', 'open-dayone', 'request-review']);
+  let s = await steps(createInitialGame('核对客'), ['tell-pass-lost', 'mention-ding17', 'challenge-search', 'request-entry', 'submit-search', 'open-dayone', 'request-review']);
   s = await steps(s, ['review-confirm', 'review-release']);
   assert.ok(s.gateAccess);
   assert.equal(s.dayOne.returnReceipt, null);

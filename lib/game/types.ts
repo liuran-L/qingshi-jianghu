@@ -24,7 +24,11 @@ export type KnownFactId =
   | 'doctor-wound-residue'
   | 'clinic-corpse-details'
   | 'corpse-wound-link'
-  | 'inn-corpse-rumor';
+  | 'inn-corpse-rumor'
+  | 'baggage-watch-mark'
+  | 'inn-arrival-inquiry'
+  | 'day-end-watch-rumor'
+  | 'next-morning-moving-lead';
 export type WorldEventId =
   | 'roadside-ambush'
   | 'nameless-corpse'
@@ -60,6 +64,8 @@ export type LimitedActionId =
   | 'challenge-search'
   | 'offer-bribe'
   | 'request-entry'
+  | 'show-gate-fragment'
+  | 'present-gate-document'
   | 'submit-search'
   | 'inspect-wound'
   | 'inspect-bag'

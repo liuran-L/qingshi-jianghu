@@ -104,7 +104,9 @@ export function resolveDayOne(state: GameState, request: InteractionRequest): Ru
     case 'tell-confused-origin': return { ...say('“投宿是来由，不是籍贯。暂记不详，日后核对。”'), gatePhase: 'explaining' };
     case 'ask-exempt-cart': return { ...say('“那是验过漕运关防的车。你管好自己的路引，少拿眼睛乱量。”'), discoveredFactIds: ['ma-cart-deflection'], npcStatePatch: { suspicion: state.npcStates['ma-sandao'].suspicion + 1 } };
     case 'step-aside': return { timeCostMinutes: 2, narration: '差役用铁尺指了指墙根，准你退开候着；这不是放行，先前的口供和疑点都没有撤销。' };
-    case 'wait-at-gate': return { timeCostMinutes: 15, narration: '你在墙边等了一刻。伤势与疲劳照常发展，等候没有替你洗掉先前的口供。' };
+    case 'wait-at-gate': return state.playerKnownFactIds.includes('ma-private-bribe-signal')
+      ? { timeCostMinutes: 15, narration: '你又在墙边等了一刻。伤势与疲劳照常发展，等候没有替你洗掉先前的口供。' }
+      : { timeCostMinutes: 15, discoveredFactIds: ['ma-private-bribe-signal'], narration: '你在墙边等了一刻。换班空隙里，守门差役用两根手指在登记簿下轻敲两次，又朝无人处偏了偏头；像是在暗示“两两、私下谈”。这只是你亲眼看见的暗示，尚未发生交易。' };
     case 'reapproach-gate': return { timeCostMinutes: 2, narration: '你重新来到差役面前。他仍从先前停下的盘问继续，没有把你当作初次到来。' };
     case 'request-review': return { timeCostMinutes: 30, narration: '你在城门侧等到一名佩刀汉子。他让差役读出原始口供和搜查记录：“宁不平。只问你亲历的，不知道就写不知道。”' };
     case 'review-confirm': return say('“原话与补充分别记。失忆、不确定，不等于承认有罪。”', 10);

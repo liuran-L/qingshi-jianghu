@@ -23,6 +23,18 @@ const action = (id: LimitedActionId, label: string, input: string, mode: Interac
   mode,
 });
 
+/** 城门放行必须有玩家已经提出或持有的现实依据，不能只靠重复要求。 */
+export function gateEntryBasis(state: GameState): boolean {
+  const ma = state.npcStates['ma-sandao'];
+  return state.player.hasRoadPass
+    || state.inventoryItemIds.includes('temporary-stay-permit')
+    || state.dayOne.gateName !== null
+    || state.playerClaims.some((claim) => claim.toldNpcId === 'ma-sandao')
+    || ma.memory.evidence.length > 0
+    || ma.trust >= 2
+    || ma.favor >= 2;
+}
+
 /** 选项只由规则状态与玩家已知信息生成，不接受 AI 注入新的行为标识。 */
 export function getLimitedActions(state: GameState, npcId: string | null): LimitedAction[] {
   if (campaignActive(state)) return campaignActions(state);
@@ -44,10 +56,11 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
     if (state.gatePhase === 'questioning') {
       const openingChoices: LimitedAction[] = [
         ...(!state.cartMarkObserved && state.knownClueIds.includes('abnormal-wound') ? [action('observe-gate', '观察免检货车', '我留意没有接受盘查的货车和赶车人。', 'action')] : []),
+        ...(state.player.hasRoadPass || state.inventoryItemIds.includes('temporary-stay-permit') ? [action('present-gate-document', '出示已有路引或临时凭据', '这是我现有的路引或官府凭据，请按文书核验。', 'action')] : []),
+        ...(state.inventoryItemIds.includes('ding17-fragment') ? [action('show-gate-fragment', '主动出示行囊中的公文残片', '我有一张从行囊夹层找到的公文残片，愿交给差役登记查验。', 'action')] : []),
         action('tell-attack', '如实说明遇袭经过', `我叫${state.player.name}。我在城外遭到袭击，同行者失散，路引也被夺走了。`, 'speech'),
         action('tell-pass-lost', '只说路引遗失', `我叫${state.player.name}。路引在路上遗失了，其他事情与进城无关。`, 'speech'),
         ...(!state.npcKnowledge['ma-sandao'].knownName ? [action('ask-guard-name', '反问差役如何称呼', '敢问差爷如何称呼？', 'speech')] : []),
-        action('stay-silent', '保持沉默', '我没有回答，只是沉默地看着他。', 'speech'),
       ];
       if (!state.knownClueIds.includes('abnormal-wound')) openingChoices.push(action('inspect-wound', '检查左肋伤口', '我低头仔细检查左肋的伤口。', 'action'));
       if (!state.inventoryItemIds.includes('ding17-fragment')) openingChoices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));
@@ -64,11 +77,11 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
     if (state.player.injury !== '无' && !state.knownLocationIds.includes('clinic')) choices.push(action('ask-clinic', '询问哪里可以治伤', '城中哪里可以找大夫看伤？', 'speech'));
     if (!state.gateAccess) {
       if (state.knownClueIds.includes('attack-phrase') && !state.playerKnownFactIds.includes('ma-ding17-reaction')) choices.push(action('mention-ding17', '提起“丁字十七”', '你可曾听过“丁字十七”这几个字？', 'speech'));
-      choices.push(
-        action('request-entry', '请差役按规矩放行', '该说的我已经说清，请差爷按规矩放我进城。', 'speech'),
-        action('challenge-search', '质问为何刁难自己', '旁人都能过去，凭什么偏要刁难我？', 'speech'),
-        action('offer-bribe', '试探能否用碎银通融', '这点碎银请差爷通融。', 'speech'),
-      );
+      if (state.player.hasRoadPass || state.inventoryItemIds.includes('temporary-stay-permit')) choices.push(action('present-gate-document', '出示已有路引或临时凭据', '这是我现有的路引或官府凭据，请按文书核验。', 'action'));
+      if (state.inventoryItemIds.includes('ding17-fragment')) choices.push(action('show-gate-fragment', '主动出示行囊中的公文残片', '我有一张从行囊夹层找到的公文残片，愿交给差役登记查验。', 'action'));
+      if (gateEntryBasis(state)) choices.push(action('request-entry', '请按无路引规矩登记候验', '来由与现有物件都已说明，请按无路引行旅的规矩登记候验。', 'speech'));
+      choices.push(action('challenge-search', '要求写明搜查依据', '若要搜查，请按规矩写明依据、经手人和所扣物件。', 'speech'));
+      if (state.playerKnownFactIds.includes('ma-private-bribe-signal') && state.player.money >= 2) choices.push(action('offer-bribe', '递两两，请按私下暗示通融', '方才的暗示我明白。这两两银子是明确代价，请照说好的通融。', 'speech'));
     }
     if (!state.knownClueIds.includes('abnormal-wound')) choices.push(action('inspect-wound', '检查左肋伤口', '我低头仔细检查左肋的伤口。', 'action'));
     if (!state.inventoryItemIds.includes('ding17-fragment')) choices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));

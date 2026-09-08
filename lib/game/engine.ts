@@ -112,10 +112,28 @@ const eventOutcome = (id: WorldEventId): string => {
 export function applyScheduledWorldEvents(state: GameState): GameState {
   const elapsedMinutes = state.worldMinutes - state.storyStartedAtMinutes;
   const newlyTriggered = worldEvents.filter((event) => event.offsetMinutes <= elapsedMinutes && !state.triggeredWorldEventIds.includes(event.id));
-  if (!newlyTriggered.length) return state;
   const worldEventOutcomes = { ...state.worldEventOutcomes };
   for (const event of newlyTriggered) worldEventOutcomes[event.id] = eventOutcome(event.id);
-  return { ...state, triggeredWorldEventIds: [...state.triggeredWorldEventIds, ...newlyTriggered.map((event) => event.id)], worldEventOutcomes };
+  let next: GameState = newlyTriggered.length
+    ? { ...state, triggeredWorldEventIds: [...state.triggeredWorldEventIds, ...newlyTriggered.map((event) => event.id)], worldEventOutcomes }
+    : state;
+  const firstNightPassed = elapsedMinutes >= 12 * 60;
+  const hookAlreadyGiven = next.playerKnownFactIds.includes('day-end-watch-rumor') || next.playerKnownFactIds.includes('next-morning-moving-lead');
+  if (firstNightPassed && next.player.alive && !campaignActive(next) && !hookAlreadyGiven) {
+    const activeSources: KnownFactId[] = ['baggage-watch-mark', 'inn-arrival-inquiry', 'ma-ding17-reaction'];
+    const followedActiveSource = activeSources.some((id) => next.playerKnownFactIds.includes(id));
+    const fact: KnownFactId = followedActiveSource ? 'next-morning-moving-lead' : 'day-end-watch-rumor';
+    const text = followedActiveSource
+      ? '黎明换班时，你把先前的异样重新串起：有人似乎早知道你会来，而且正在更换接头的人、船或落脚处。若要查清，次日再追已经会看到不同的局面。'
+      : '黎明换班时，一名脚夫低声提醒：昨夜有人打听今日进城的带伤外乡客，问话者明早会去码头改搭别船。对方像是早知道你会来，也像在等你带着什么；到了次日，人和船都可能变。';
+    next = {
+      ...next,
+      playerKnownFactIds: [...next.playerKnownFactIds, fact],
+      dialogue: [...next.dialogue, line('旁白', text, 'narration')],
+      logs: [...next.logs, log(next, 'discovery', `获得情报：${getKnownFact(fact).text}`)],
+    };
+  }
+  return next;
 }
 
 export function advanceGameTime(state: GameState, requestedMinutes: number): GameState {
@@ -316,7 +334,7 @@ export function applyInteractionResult(state: GameState, request: InteractionReq
     player,
     dialogue: [...state.dialogue, ...additions, ...advanced.dialogue.slice(state.dialogue.length)],
     knownLocationIds: [...new Set([...state.knownLocationIds, ...newLocations])],
-    playerKnownFactIds: [...new Set([...state.playerKnownFactIds, ...newFacts])],
+    playerKnownFactIds: [...new Set([...advanced.playerKnownFactIds, ...newFacts])],
     knownClueIds: [...new Set([...state.knownClueIds, ...newClues])],
     inventoryItemIds: [...new Set([...state.inventoryItemIds, ...newItems])].filter((id) => !resolution.removedItemIds?.includes(id)),
     knownWorldEventIds,

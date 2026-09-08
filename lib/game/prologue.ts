@@ -92,7 +92,7 @@ export function applyPrologue(state: GameState, before: GameState, request: Inte
   let next = { ...state, evidenceCustody: { ...state.evidenceCustody }, saltCase: { ...state.saltCase } };
   switch (request.actionId) {
     case 'inspect-bag': next.evidenceCustody.fragment = 'player'; break;
-    case 'submit-search': if (before.inventoryItemIds.includes('ding17-fragment')) next.evidenceCustody.fragment = 'ma'; break;
+    case 'submit-search': case 'show-gate-fragment': if (before.inventoryItemIds.includes('ding17-fragment')) next.evidenceCustody.fragment = 'ma'; break;
     case 'observe-gate': next.cartMarkObserved = true; next.evidenceCustody.cart = 'player'; break;
     case 'request-treatment': if (before.player.money >= 3) next.evidenceCustody.medical = 'shen'; break;
     case 'compare-corpse-wound': next.poisonWoundLinked = true; break;

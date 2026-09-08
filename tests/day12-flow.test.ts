@@ -3,7 +3,7 @@ import { prepareService } from './helpers/confirmed-service.ts';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { advanceGameTime, applyInteractionResult, createInitialGame, movePlayer, selectNpc } from '../lib/game/engine.ts';
-import { getLimitedActions } from '../lib/game/limited-actions.ts';
+import { getAvailableActions, getLimitedActions } from '../lib/game/limited-actions.ts';
 import { mockAIService } from '../lib/ai/mock-service.ts';
 import type { GameState, LimitedActionId, LocationId } from '../lib/game/types.ts';
 import { continueReading, createActionRunner, createTravelRunner, latestDialogueIndex, previewTravel, readingPosition } from '../lib/game/flow-controller.ts';
@@ -24,6 +24,12 @@ async function click(state: GameState, id: LimitedActionId, npcId = state.select
   return result.state;
 }
 const actions = (state: GameState) => getLimitedActions(state, state.selectedNpcId).map((choice) => choice.id);
+async function openSceneMenu(state: GameState): Promise<GameState> {
+  assert.ok(getAvailableActions(state, state.selectedNpcId).some((choice) => choice.id === 'open-dayone'));
+  const result = await createActionRunner(mockAIService)(state, latestDialogueIndex(state), 'open-dayone', state.selectedNpcId);
+  assert.ok(result);
+  return result.state;
+}
 async function enter(places: LimitedActionId[] = []) {
   let state = await click(createInitialGame('基线测试客'), 'tell-attack');
   for (const place of places) state = await click(state, place);
@@ -48,7 +54,7 @@ void test('D02 客栈传闻说出医馆后解锁路线，不泄露尸体同源�
 
 void test('D03 搜查扣押移除实物但保留玩家已知线索', async () => {
   let state = await click(createInitialGame('被扣测试客'), 'inspect-bag');
-  for (const id of ['stay-silent', 'challenge-search', 'request-entry', 'submit-search'] as const) state = await click(state, id);
+  for (const id of ['tell-pass-lost', 'mention-ding17', 'request-entry', 'submit-search'] as const) state = await click(state, id);
   assert.equal(state.gatePhase, 'detained');
   assert.ok(!state.inventoryItemIds.includes('ding17-fragment'));
   assert.ok(state.knownClueIds.includes('ding17-fragment'));
@@ -142,8 +148,10 @@ void test('D10 完整路线B：仅问客栈→先宿→剑客传闻→先问尸�
   assert.ok(state.knownClueIds.includes('matching-corpse-wound'));
 });
 
-void test('D11 城门四种开场与搜查阈值；没拆夹层可放行，已暴露残片会被扣', async () => {
-  for (const [id, suspicion] of [['tell-attack', 0], ['tell-pass-lost', 1], ['ask-guard-name', 0], ['stay-silent', 2]] as const) {
+void test('D11 城门现实依据开场与搜查阈值；沉默和无依据放行不生成，残片会被扣', async () => {
+  assert.ok(!actions(createInitialGame('盘查基线')).includes('stay-silent'));
+  assert.ok(!actions(createInitialGame('盘查基线')).includes('request-entry'));
+  for (const [id, suspicion] of [['tell-attack', 0], ['tell-pass-lost', 1], ['ask-guard-name', 0]] as const) {
     let state = await click(createInitialGame('盘查基线'), id);
     assert.equal(state.npcStates['ma-sandao'].suspicion, suspicion);
     if (id === 'ask-guard-name') {
@@ -185,14 +193,17 @@ void test('D12 十二小时事件边界：旁观者不自动知情；留在医�
   assert.equal(again.dialogue.length, clinic.dialogue.length);
 });
 
-void test('D13 未问姓名时危险动作及情报不能泄露马三刀真名、递话对象或私下交易', async () => {
+void test('D13 未问姓名时不泄露马三刀真名或递话对象；打点须先观察暗示并实付', async () => {
   let state = await click(createInitialGame('匿名差役'), 'tell-attack');
-  for (const id of ['mention-ding17', 'offer-bribe', 'challenge-search'] as const) state = await click(state, id);
+  assert.ok(!actions(state).includes('offer-bribe'));
+  for (const id of ['mention-ding17', 'challenge-search'] as const) state = await click(state, id);
+  state = await openSceneMenu(state);
+  for (const id of ['step-aside', 'wait-at-gate', 'reapproach-gate', 'offer-bribe'] as const) state = await click(state, id);
   const visible = [...state.dialogue.map((line) => `${line.speaker}${line.text}`), ...state.logs.map((entry) => entry.text), ...state.playerKnownFactIds.map((id) => getKnownFact(id).text)].join('\n');
-  assert.doesNotMatch(visible, /马三刀|乔五|漕帮|私下打点/);
+  assert.doesNotMatch(visible, /马三刀|乔五|漕帮/);
   assert.ok(state.npcStates['ma-sandao'].informedRiverGang);
-  assert.ok(state.playerKnownFactIds.includes('ma-public-bribe-caution'));
-  assert.equal(state.player.money, 20);
+  assert.ok(state.playerKnownFactIds.includes('ma-private-bribe-signal'));
+  assert.equal(state.player.money, 18);
 });
 
 void test('D14 拒答姓名跨场景仍锁定；新闻回答后锁定，重复观察不刷钱、能力或关系', async () => {
@@ -314,7 +325,7 @@ void test('D20 死亡→读生前档→继续治疗住宿调查；扣留档读�
   await repo.save('auto', state);
   assert.deepEqual(await repo.load('auto'), state);
   let detained = await click(createInitialGame('扣留读档'), 'inspect-bag');
-  for (const id of ['stay-silent', 'challenge-search', 'request-entry', 'submit-search'] as const) detained = await click(detained, id);
+  for (const id of ['tell-pass-lost', 'mention-ding17', 'request-entry', 'submit-search'] as const) detained = await click(detained, id);
   await repo.save('manual-2', detained);
   const restored = (await repo.load('manual-2'))!;
   assert.deepEqual(actions(restored), ['request-review']);
