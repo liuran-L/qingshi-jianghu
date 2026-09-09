@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { existsSync, readFileSync } from 'node:fs';
-import { isStandaloneDisplay, standaloneStorageNotice } from '../lib/ui/install-entry.ts';
+import {
+  canRequestNativeInstall,
+  installGuidance,
+  isStandaloneDisplay,
+  requestNativeInstall,
+  shouldShowInstallEntry,
+  standaloneStorageNotice,
+} from '../lib/ui/install-entry.ts';
 import { SAVE_KEY } from '../lib/game/storage.ts';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url));
@@ -73,4 +80,49 @@ void test('P0-8 主屏入口未读到存档时先提示可能的存储隔离，�
   assert.equal(standaloneStorageNotice(false, false), null);
   assert.equal(standaloneStorageNotice(true, true), null);
   assert.equal(SAVE_KEY, 'qingshi-jianghu-save-v5:auto');
+});
+
+void test('主屏独立窗口隐藏添加入口', () => {
+  assert.equal(shouldShowInstallEntry(true), false);
+  assert.equal(shouldShowInstallEntry(false), true);
+  assert.match(text('app/page.tsx'), /shouldShowInstallEntry\(standaloneEntry\)/);
+});
+
+void test('Android 提供安装事件时调用浏览器原生确认', async () => {
+  let promptCalls = 0;
+  const outcome = await requestNativeInstall({
+    prompt: async () => { promptCalls += 1; },
+    userChoice: Promise.resolve({ outcome: 'dismissed' }),
+  });
+  assert.equal(promptCalls, 1);
+  assert.equal(outcome, 'dismissed');
+  assert.equal(canRequestNativeInstall('Mozilla/5.0 (Linux; Android 15) Chrome/140 Mobile'), true);
+  const page = text('app/page.tsx');
+  assert.match(page, /beforeinstallprompt/);
+  assert.match(page, /requestNativeInstall\(nativeInstallPrompt\)/);
+});
+
+void test('Android 没有安装事件时提供非空菜单指引', () => {
+  const guidance = installGuidance('Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/140 Mobile Safari/537.36');
+  assert.match(guidance, /浏览器菜单/);
+  assert.match(guidance, /添加到桌面／添加到主屏幕／安装应用/);
+});
+
+void test('微信与 iPhone/iPad 使用各自的安全指引', () => {
+  assert.equal(canRequestNativeInstall('Mozilla/5.0 (Linux; Android 14) MicroMessenger/8.0'), false);
+  assert.equal(installGuidance('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) MicroMessenger/8.0'), '请点击右上角‘⋯’，选择在浏览器打开后，再添加到主屏幕。');
+  assert.equal(installGuidance('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Version/18.0 Mobile Safari/604.1'), '点击分享按钮，再选择‘添加到主屏幕’。');
+  assert.equal(installGuidance('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) Mobile/15E148 Safari/604.1'), '点击分享按钮，再选择‘添加到主屏幕’。');
+});
+
+void test('QQ 浏览器与夸克使用通用菜单降级提示', () => {
+  for (const [userAgent, browser] of [
+    ['Mozilla/5.0 (Linux; Android 14) MQQBrowser/14.9 Mobile', 'QQ 浏览器'],
+    ['Mozilla/5.0 (Linux; Android 14) Quark/7.5 Mobile', '夸克'],
+  ]) {
+    const guidance = installGuidance(userAgent);
+    assert.match(guidance, new RegExp(browser));
+    assert.match(guidance, /浏览器菜单/);
+    assert.match(guidance, /添加到桌面／添加到主屏幕／安装应用/);
+  }
 });

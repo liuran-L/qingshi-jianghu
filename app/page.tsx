@@ -16,7 +16,15 @@ import { KnownInformation } from './known-information';
 import { ReturnJourneyActions } from './return-journey-actions';
 import { knowledgeGroups, knowledgeScope } from '@/lib/ui/knowledge';
 import { actionTabOf, partitionActions, reserveActionSlots } from '@/lib/ui/action-layout';
-import { isStandaloneDisplay, standaloneStorageNotice } from '@/lib/ui/install-entry';
+import {
+  canRequestNativeInstall,
+  installGuidance,
+  isStandaloneDisplay,
+  requestNativeInstall,
+  shouldShowInstallEntry,
+  standaloneStorageNotice,
+  type NativeInstallPrompt,
+} from '@/lib/ui/install-entry';
 import { totalArtPoints, type ArtTree } from '@/lib/game/arts-content';
 import { battles, battleContext } from '@/lib/game/battle';
 import { presentNpcIds } from '@/lib/game/day-one';
@@ -26,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import {
   BookOpenText,
   ChevronRight,
+  Download,
   HardDriveDownload,
   HardDriveUpload,
   History,
@@ -34,6 +43,7 @@ import {
   RotateCcw,
   ScrollText,
   UserRound,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -90,6 +100,8 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const [saveSlots, setSaveSlots] = useState<SaveSlotSummary[]>([]);
   const [saveExists, setSaveExists] = useState(false);
   const [standaloneEntry, setStandaloneEntry] = useState(false);
+  const [nativeInstallPrompt, setNativeInstallPrompt] = useState<NativeInstallPrompt | null>(null);
+  const [installHelp, setInstallHelp] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [notice, setNotice] = useState('');
   const [relationshipNotice, setRelationshipNotice] = useState('');
@@ -119,6 +131,24 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     return () => window.clearTimeout(timer);
   }, [saveRepository]);
 
+  useEffect(() => {
+    const captureInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setNativeInstallPrompt(event as Event & NativeInstallPrompt);
+    };
+    const markInstalled = () => {
+      setStandaloneEntry(true);
+      setNativeInstallPrompt(null);
+      setInstallHelp(null);
+    };
+    window.addEventListener('beforeinstallprompt', captureInstallPrompt);
+    window.addEventListener('appinstalled', markInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
+      window.removeEventListener('appinstalled', markInstalled);
+    };
+  }, []);
+
   const location = game ? getLocation(game.locationId) : locations[0];
   const presentNpcs = useMemo(() => (game ? presentNpcIds(game) : location.npcIds).map(getNpc), [game, location]);
   const selectedNpc = game?.selectedNpcId ? getNpc(game.selectedNpcId) : undefined;
@@ -129,6 +159,20 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     setScreen('title'); setInstantDialogue(false); setReservedActionSlots(reserveActionSlots(6, getLimitedActions(next, next.selectedNpcId), campaignActive(next))); setGame(next);
     setRelationshipNotice('');
     setDialogueIndex(0);
+  };
+  const installToHomeScreen = async () => {
+    const userAgent = navigator.userAgent;
+    if (!nativeInstallPrompt || !canRequestNativeInstall(userAgent)) {
+      setInstallHelp(installGuidance(userAgent));
+      return;
+    }
+    try {
+      await requestNativeInstall(nativeInstallPrompt);
+      setNativeInstallPrompt(null);
+    } catch {
+      setNativeInstallPrompt(null);
+      setInstallHelp(installGuidance(userAgent));
+    }
   };
   const openMap = async () => {
     if (!game || gameEnded(game) || game.campaign.finale || busy || !game.player.alive || game.gatePhase === 'detained' || !readingPosition(game, dialogueIndex).latest) return;
@@ -252,10 +296,23 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
           />
           <Button className="mt-4" onClick={() => void storageAction(start)} disabled={busy}>踏入青石县</Button>
           <Button variant="ghost" onClick={() => setScreen('title')}>返回主界面</Button></>}
-          {screen === 'title' && <div className="mt-6 grid gap-3">
-            <Button size="lg" onClick={() => setScreen('new')} disabled={busy}>新的旅程</Button>
-            <Button size="lg" onClick={() => void storageAction(openLoadManager)} disabled={busy}>继续旅程</Button>
-          </div>}
+          {screen === 'title' && <>
+            <div className="mt-6 grid gap-3">
+              <Button size="lg" onClick={() => setScreen('new')} disabled={busy}>新的旅程</Button>
+              <Button size="lg" onClick={() => void storageAction(openLoadManager)} disabled={busy}>继续旅程</Button>
+            </div>
+            {shouldShowInstallEntry(standaloneEntry) && <div className="mt-2 min-h-[8.5rem] text-center">
+              <Button size="sm" variant="ghost" className="text-stone-300 hover:bg-white/10 hover:text-paper" onClick={() => void installToHomeScreen()}>
+                <Download aria-hidden="true" /> 添加到主屏幕
+              </Button>
+              {installHelp && <div className="relative mt-2 border border-stone-500/70 bg-black/20 px-3 py-2 pr-10 text-left text-xs leading-5 text-stone-300">
+                <output className="block" aria-live="polite">{installHelp}</output>
+                <Button size="icon-xs" variant="ghost" className="absolute top-1.5 right-1.5 text-stone-300 hover:bg-white/10 hover:text-paper" aria-label="关闭添加到主屏幕指引" onClick={() => setInstallHelp(null)}>
+                  <X aria-hidden="true" />
+                </Button>
+              </div>}
+            </div>}
+          </>}
           <p className="mt-5 text-sm leading-6 text-stone-300">六十日盐路风云。侠行、行商、夜盗、公门、行医，都从一次次选择中成为你的路。全程离线，本地存档。</p>
         </div>
         <Dialog open={saveManagerMode === 'load'} onOpenChange={(open) => !open && setSaveManagerMode(null)}>
