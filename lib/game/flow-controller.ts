@@ -25,7 +25,7 @@ export function createActionRunner(service: DialogueAIService) {
   return async (state: GameState, index: number, id: LimitedActionId, npcId: string | null) => {
     if (pending || !readingPosition(state, index).latest || npcId !== state.selectedNpcId) return null;
     const choice = getLimitedActions(state, npcId).find((item) => item.id === id);
-    if (!choice) return null;
+    if (!choice || choice.disabledReason) return null;
     pending = true;
     try {
       const request = { actionId: choice.id, input: choice.input, mode: choice.mode, npcId };

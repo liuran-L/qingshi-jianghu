@@ -53,6 +53,14 @@ export const knownFacts: KnownFactDefinition[] = [
   { id: 'inn-arrival-inquiry', text: '天未亮时有人到客栈问过：今日是否会有带伤、背湿行囊的外乡客投店；来人午后会换地方。' },
   { id: 'day-end-watch-rumor', text: '换班脚夫听见有人打听一个今日进城的带伤外乡客；问话者明早会去码头改搭别船。' },
   { id: 'next-morning-moving-lead', text: '现有迹象指向同一件事：有人预先留意你的到来，并会在次日更换接头的人、船或落脚处。' },
+  { id: 'dock-salt-movement', text: '渡口脚夫按官盐船号换班，空车先候在岸上；“丁字十七”在这里是船货编号，不是人名。' },
+  { id: 'clinic-routine', text: '回春堂把伤者来处、药材领用和留样分别登记；病案只能证明医者实际验过的伤。' },
+  { id: 'day2-public-notice', text: '县衙贴出告示：近日盐路与渡口交接将加验船号、路引和经手签押，异常已牵涉官面秩序。' },
+  { id: 'public-yamen-role', text: '县衙公开负责路引、官盐文书、封验与城门秩序；宁不平等差役只能按可核记录办事。' },
+  { id: 'public-river-gang-role', text: '漕帮公开掌握河道船位、码头脚夫和货物交接；乔五是河上脚夫会看脸色的人。' },
+  { id: 'public-qingyue-role', text: '青岳门是本地公开活动的武林门派，门人会为山门声名、同门安危和掌门之事出面。' },
+  { id: 'act-one-surface-conflict', text: '眼下公开可见的冲突是：县衙要维持盐路与城门秩序，漕帮要守住河运生计和地盘，青岳门则因门人卷入而介入；三方说法尚不能证明幕后责任。' },
+  { id: 'act-one-involvement', text: '荒道上有人喊“丁字十七”，又有人提前辨认带伤外乡客与行囊；第三日同号船成为争执中心，各方因此把你当作能接上这段时序的见证人。' },
 ];
 
 export const inventoryItems: InventoryItemDefinition[] = [

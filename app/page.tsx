@@ -15,11 +15,13 @@ import { ArtTreeDiagram } from './art-tree';
 import { KnownInformation } from './known-information';
 import { ReturnJourneyActions } from './return-journey-actions';
 import { knowledgeGroups, knowledgeScope } from '@/lib/ui/knowledge';
+import { actionTabOf, partitionActions, reserveActionSlots } from '@/lib/ui/action-layout';
+import { isStandaloneDisplay, standaloneStorageNotice } from '@/lib/ui/install-entry';
 import { totalArtPoints, type ArtTree } from '@/lib/game/arts-content';
 import { battles, battleContext } from '@/lib/game/battle';
 import { presentNpcIds } from '@/lib/game/day-one';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BookOpenText,
@@ -86,12 +88,14 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const [actionTab, setActionTab] = useState('眼前');
   const [saveManagerMode, setSaveManagerMode] = useState<'save' | 'load' | null>(null);
   const [saveSlots, setSaveSlots] = useState<SaveSlotSummary[]>([]);
-  const [, setSaveExists] = useState(false);
+  const [saveExists, setSaveExists] = useState(false);
+  const [standaloneEntry, setStandaloneEntry] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [notice, setNotice] = useState('');
   const [relationshipNotice, setRelationshipNotice] = useState('');
   const [interactionBusy, setBusy] = useState(false);
   const [storageBusy, setStorageBusy] = useState(false);
+  const [reservedActionSlots, setReservedActionSlots] = useState(6);
   const busy = interactionBusy || storageBusy;
   const storageLock = useRef(false);
   const [saveDirty, setSaveDirty] = useState(false);
@@ -104,9 +108,10 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
+          setStandaloneEntry(isStandaloneDisplay(window.matchMedia('(display-mode: standalone)').matches, (navigator as Navigator & { standalone?: boolean }).standalone));
           setSaveExists(await saveRepository.hasAny());
           const restored = consumeSceneReturn();
-          if (restored) { setInstantDialogue(true); setGame(restored); setDialogueIndex(Math.max(0, restored.dialogue.length - 1)); }
+          if (restored) { setInstantDialogue(true); setReservedActionSlots(reserveActionSlots(6, getLimitedActions(restored, restored.selectedNpcId), campaignActive(restored))); setGame(restored); setDialogueIndex(Math.max(0, restored.dialogue.length - 1)); }
         } catch { setNotice('无法读取存档列表，请检查本地存储权限后重试'); }
         finally { setHydrated(true); }
       })();
@@ -121,7 +126,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const start = async () => {
     const next = await startNewJourney(saveRepository, name);
     savedState.current = null; setSaveDirty(true);
-    setScreen('title'); setInstantDialogue(false); setGame(next);
+    setScreen('title'); setInstantDialogue(false); setReservedActionSlots(reserveActionSlots(6, getLimitedActions(next, next.selectedNpcId), campaignActive(next))); setGame(next);
     setRelationshipNotice('');
     setDialogueIndex(0);
   };
@@ -149,7 +154,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
         const changes = relationshipStageChanges(game, result.state);
         if (changes.length) setRelationshipNotice(changes.map((change) => `与${getNpcDisplayName(result.state, change.npcId)}的关系由${change.from}转为${change.to}。`).join(''));
         try { const saved = await saveCheckpoint(saveRepository, result.state); setSaveDirty(!saved); if (saved) savedState.current = result.state; } catch { setSaveDirty(true); setNotice('自动存档失败，进度仍在内存，请手动保存'); }
-        setInstantDialogue(false); setGame(result.state); setDialogueIndex(result.dialogueIndex); setActionTab('眼前'); }
+        setInstantDialogue(false); setReservedActionSlots(previous => reserveActionSlots(previous, getLimitedActions(result.state, result.state.selectedNpcId), campaignActive(result.state))); setGame(result.state); setDialogueIndex(result.dialogueIndex); setActionTab('眼前'); }
     } catch {
       setNotice('这次交互没有成功，请稍后再试');
     } finally {
@@ -181,7 +186,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     if (!restored) return;
     await beginSession(saveRepository, slot);
     savedState.current = restored; setSaveDirty(false);
-    setInstantDialogue(true); setGame(restored); setKnowledgeRevision(value => value + 1);
+    setInstantDialogue(true); setReservedActionSlots(reserveActionSlots(6, getLimitedActions(restored, restored.selectedNpcId), campaignActive(restored))); setGame(restored); setKnowledgeRevision(value => value + 1);
     setDialogueIndex(Math.max(0, restored.dialogue.length - 1));
     setSaveManagerMode(null); setBagOpen(false); setItemAction(null); setRelationshipNotice('');
     setNotice(`已读取${saveSlots.find((item) => item.id === slot)?.label ?? '存档'}`);
@@ -208,7 +213,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     setNotice('手动存档已删除');
   };
   const discard = () => {
-    setGame(returnToTitle(game, true)); setScreen('title'); setReturnOpen(false);
+    setReservedActionSlots(6); setGame(returnToTitle(game, true)); setScreen('title'); setReturnOpen(false);
     savedState.current = null; setSaveDirty(false); setDialogueIndex(0); setName('');
     setHistoryOpen(false); setBagOpen(false); setItemAction(null); setSaveManagerMode(null); setNotice(''); setRelationshipNotice('');
   };
@@ -220,6 +225,8 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
       </main>
     );
 
+  const standaloneNotice = standaloneStorageNotice(standaloneEntry, saveExists);
+
   if (!game)
     return (
       <main className="opening-screen min-h-screen p-4 text-paper">
@@ -230,6 +237,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
           <p className="mt-6 max-w-md font-serif text-lg leading-8 text-stone-300">
             暮雨中的商旅在青石县外遇袭。你带着一道止不住血的伤口醒来，只记得有人在雨里喊着：“找丁字十七。”
           </p>
+          {standaloneNotice && <output className="mt-5 block border border-[#c67b68]/55 bg-black/25 p-4 text-sm leading-6 text-stone-200" aria-live="polite">{standaloneNotice}</output>}
           {screen === 'new' && <> <label className="mt-8 block text-sm text-stone-300" htmlFor="name">
             你的江湖名号
           </label>
@@ -289,10 +297,12 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   const journeyNote = itinerary(game);
   const portrait = portraitForLine(game, currentLine);
   const scene = sceneFor(game, currentLine);
-  const tabOf = (id: string) => /journey-(work:|pledge:)/.test(id) ? '谋生' : /journey-(train:|lesson:|teach:|node:|arts:)/.test(id) ? '修习' : /journey-(break|debt|medical-debt|amends|rumors)$/.test(id) ? '旧事' : '眼前';
-  const tabs = ['眼前', '谋生', '修习', '旧事'].filter(tab => limitedActions.some(choice => tabOf(choice.id) === tab));
+  const tabs = ['眼前', '谋生', '修习', '旧事'].filter(tab => limitedActions.some(choice => actionTabOf(choice.id) === tab));
   const currentTab = tabs.includes(actionTab) ? actionTab : tabs[0];
-  const visibleActions = campaignActive(game) ? limitedActions.filter(choice => tabOf(choice.id) === currentTab) : limitedActions;
+  const visibleActions = campaignActive(game) ? limitedActions.filter(choice => actionTabOf(choice.id) === currentTab) : limitedActions;
+  const actionGroups = partitionActions(visibleActions, campaignActive(game));
+  const renderedActionSlots = reserveActionSlots(reservedActionSlots, limitedActions, campaignActive(game));
+  const actionRegionStyle = { '--action-slots': renderedActionSlots } as CSSProperties;
 
   return (
     <main className="min-h-screen p-3 text-ink sm:p-5">
@@ -336,13 +346,13 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
           {caseNotice && <output className="block border-b border-ink/20 bg-[#f7f1e3] p-5 leading-7" aria-live="polite">{caseNotice}</output>}
           {relationshipNotice && <output className="block border-b border-ink/20 bg-[#f7f1e3] p-4 text-sm leading-6 text-cinnabar" aria-live="polite">{relationshipNotice}</output>}
           {ending && isLatestLine && <section className="border-b-2 border-cinnabar p-6 sm:p-8" aria-label="人生与案卷">
-            <p className="text-sm tracking-widest text-cinnabar">{game.campaign.ending ? '此生定稿 · 可存读回看' : '案卷暂结 · 江湖未尽'}</p>
+            <p className="text-sm tracking-widest text-cinnabar">{game.campaign.ending ? '此程已毕 · 可存读回看' : '案卷暂结 · 江湖未尽'}</p>
             <h2 className="mt-3 font-serif text-3xl">{ending.title}</h2>
             <div className="mt-5 space-y-4 font-serif text-lg leading-8">{ending.facts.map((fact) => <p key={fact}>{playerText(fact, game)}</p>)}</div>
             {ending.stayPermitUntil !== null && <p className="mt-4 text-sm text-ink/65">暂留凭条有效至：{formatWorldTime(ending.stayPermitUntil)}</p>}
             <div className="mt-6 flex flex-wrap gap-3">
               <Button disabled={busy} onClick={() => void storageAction(async () => {
-                if (sessionAutoAllowed() ? await finishPrologueDemo(saveRepository, game, dialogueIndex) : await createSaveOperation(saveRepository, game, window, '人生案卷')) { setGame(null); setDialogueIndex(0); setNotice('此页已保存，可从存档继续或回看。'); }
+                if (sessionAutoAllowed() ? await finishPrologueDemo(saveRepository, game, dialogueIndex) : await createSaveOperation(saveRepository, game, window, '人生案卷')) { setReservedActionSlots(6); setGame(null); setDialogueIndex(0); setNotice('此页已保存，可从存档继续或回看。'); }
               })}>保存并返回主界面</Button>
             </div>
             {!game.campaign.ending && <p className="mt-3 text-sm text-ink/55">下方可选择继续这一生。此前的口供、旧债、证物归属和关系全部保留。</p>}
@@ -404,7 +414,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
                 </button>
               </div>
 
-              <div className="mt-3 min-h-32">
+              <div className="action-region mt-3" style={actionRegionStyle}>
                 {!isLatestLine ? (
                   <Button
                     className="w-full justify-between py-6"
@@ -417,17 +427,31 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
                   <div>
                     {campaignActive(game) && tabs.length > 1 && <fieldset className="mb-3 flex flex-wrap gap-2"><legend className="sr-only">行动类别</legend>{tabs.map(tab => <Button key={tab} variant={currentTab === tab ? 'default' : 'outline'} size="sm" onClick={() => setActionTab(tab)}>{tab}</Button>)}</fieldset>}
                   <div className="grid gap-2 sm:grid-cols-2" aria-label="当前可选回应">
-                    {visibleActions.map((choice) => (
+                    {actionGroups.primary.map((choice) => (
                       <Button
                         key={choice.id}
                         variant="outline"
-                        className="h-auto min-h-12 justify-start whitespace-normal px-4 py-3 text-left leading-6"
+                        className="h-auto min-h-24 justify-start whitespace-normal px-4 py-3 text-left leading-6 sm:min-h-14"
                         onClick={() => void submitInteraction(choice)}
-                        disabled={busy}
+                        disabled={busy || !!choice.disabledReason}
+                        title={choice.disabledReason}
                       >
-                        {busy ? '等待回应……' : choice.id === 'open-growth' ? '查看功法线索' : choice.label}
+                        <span>{busy ? '等待回应……' : choice.id === 'open-growth' ? '查看功法线索' : choice.label}{choice.disabledReason && <small className="mt-1 block font-normal text-ink/55">{choice.disabledReason}</small>}</span>
                       </Button>
                     ))}
+                    {actionGroups.secondary.length > 0 && <details className="secondary-actions border border-ink/20 bg-paper/40 p-2 sm:col-span-2">
+                      <summary className="cursor-pointer px-2 py-3 font-serif text-sm">察看与打听（{actionGroups.secondary.length}）</summary>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {actionGroups.secondary.map((choice) => <Button
+                          key={choice.id}
+                          variant="outline"
+                          className="h-auto min-h-24 justify-start whitespace-normal px-4 py-3 text-left leading-6 sm:min-h-14"
+                          onClick={() => void submitInteraction(choice)}
+                          disabled={busy || !!choice.disabledReason}
+                          title={choice.disabledReason}
+                        ><span>{choice.label}{choice.disabledReason && <small className="mt-1 block font-normal text-ink/55">{choice.disabledReason}</small>}</span></Button>)}
+                      </div>
+                    </details>}
                   </div>
                   </div>
                 ) : (

@@ -4,7 +4,7 @@ import { storyEvents, routeNames } from './campaign-content.ts';
 import type { LifeRoute } from './campaign-types.ts';
 export function itinerary(s: GameState) {
   const c = s.campaign, day = campaignDay(s);
-  if (!s.player.alive || c.ending) return { appointment: '此生已定稿，可读档或回看。', deadline: null, routes: [] };
+  if (!s.player.alive || c.ending) return { appointment: '这一程已经结束，可读档或回看。', deadline: null, routes: [] };
   if (!campaignActive(s)) return { appointment: '先处理眼前的伤势、身份与落脚处；已知线索可在历史中查阅。', deadline: null, routes: [] };
   const e = upcomingEvent(s), current = e && s.worldMinutes >= dayAt(s, e.day);
   const endDay = e ? storyEvents[storyEvents.indexOf(e) + 1]?.day ?? 58 : 60;
@@ -20,5 +20,5 @@ export function itinerary(s: GameState) {
     const learning = ({xia:'武学',trade:'口才',shadow:'轻功',office:'洞察',healer:'医术'}[route]) + '：' + (c.trained[route] >= 3 ? '属性研习已到本篇上限' : [c.experience[route] < 2 ? `阅历还差 ${2 - c.experience[route]} 点` : '阅历足够', s.player.money < 3 ? `银两还差 ${3 - s.player.money}` : '需花三两', c.lastTrainDay === day ? '今日已训练，次日再练' : '需四小时'].join('；'));
     return { route, name: routeNames[route], missing, learning };
   });
-  return { appointment, deadline: e ? `窗口在第 ${endDay} 日 09:00 失效（行动完成也须早于该时刻）；赶路与训练会占用时间。` : '最迟第 60 日 23:59 定稿。', routes };
+  return { appointment, deadline: e ? `窗口在第 ${endDay} 日 09:00 失效（行动完成也须早于该时刻）；赶路与训练会占用时间。` : '最迟第 60 日 23:59 作出最后选择。', routes };
 }

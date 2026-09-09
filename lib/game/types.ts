@@ -28,7 +28,15 @@ export type KnownFactId =
   | 'baggage-watch-mark'
   | 'inn-arrival-inquiry'
   | 'day-end-watch-rumor'
-  | 'next-morning-moving-lead';
+  | 'next-morning-moving-lead'
+  | 'dock-salt-movement'
+  | 'clinic-routine'
+  | 'day2-public-notice'
+  | 'public-yamen-role'
+  | 'public-river-gang-role'
+  | 'public-qingyue-role'
+  | 'act-one-surface-conflict'
+  | 'act-one-involvement';
 export type WorldEventId =
   | 'roadside-ambush'
   | 'nameless-corpse'

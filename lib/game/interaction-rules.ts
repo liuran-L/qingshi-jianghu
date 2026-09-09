@@ -59,7 +59,7 @@ export function resolveInteraction(
 ): RuleResolution | null {
   if (!state.player.alive || !request.input.trim()) return null;
   if (request.mode === 'speech' && !request.npcId) return null;
-  const allowed = getLimitedActions(state, request.npcId).some((item) => item.id === request.actionId && item.mode === request.mode);
+  const allowed = getLimitedActions(state, request.npcId).some((item) => item.id === request.actionId && item.mode === request.mode && !item.disabledReason);
   if (!allowed) return null;
   const dayOne = resolveDayOne(state, request);
   if (dayOne) return dayOne;
@@ -125,7 +125,7 @@ export function resolveInteraction(
     case 'inspect-bag':
       return { ...base, timeCostMinutes: 8, discoveredClueIds: ['ding17-fragment'], discoveredItemIds: ['ding17-fragment'], discoveredFactIds: ['baggage-watch-mark'], narration: '你在割开的夹层里摸到一张沾血的公文残片，只辨出“丁字十七”与半枚县衙火漆。更怪的是，行囊外带内侧多了一道新划的短痕，像给认得记号的人辨包用；你只能确认痕迹不旧，尚不知道是谁留下。' };
     case 'inspect-fragment':
-      return state.player.fatigue >= 85 ? { ...base, timeCostMinutes: 6 } : { ...base, timeCostMinutes: 6, discoveredClueIds: ['black-scale-wax'] };
+      return { ...base, timeCostMinutes: 6, discoveredClueIds: ['black-scale-wax'], narration: '你把残片移到斜光下，辨出背面鱼鳞形黑蜡和一缕极淡的苦涩药味；它们只能说明纸张沾过这些东西，还不能指认经手者。' };
     case 'observe-gate':
       return { ...base, timeCostMinutes: 8, discoveredFactIds: ['gate-selective-inspection', 'cart-mark'], narration: '普通商贩被逐个盘问，一辆油布货车却只停了一瞬。守门差役看了看车夫便挥手。你注意到车门铰链黏着鱼鳞形黑蜡，车夫右眉有疤。这些是亲见的特征，尚不能证明他们在运什么。' };
     case 'request-room':
@@ -142,18 +142,28 @@ export function resolveInteraction(
     case 'compare-corpse-wound':
       return { ...base, timeCostMinutes: 8, discoveredClueIds: ['matching-corpse-wound'], discoveredFactIds: ['corpse-wound-link'] };
     case 'ask-news':
+      if (request.npcId && getTopicStatus(state, request.npcId, request.actionId) === 'reopened' && state.npcStates[request.npcId].memory.topics['ask-news']?.evidence.includes('nameless-corpse')) {
+        return { ...base, dialogue: '“你先前问过。到眼下，我还没听到新的可信消息。”', narration: '你确认这次重问没有新的可信消息；旧传闻不会被重复记成新发现。' };
+      }
       return state.triggeredWorldEventIds.includes('nameless-corpse')
-        ? { ...base, discoveredLocationIds: ['clinic'], discoveredFactIds: ['inn-corpse-rumor'], knownWorldEventIds: ['nameless-corpse'] }
-        : base;
+        ? { ...base, discoveredLocationIds: ['clinic'], discoveredFactIds: ['inn-corpse-rumor'], knownWorldEventIds: ['nameless-corpse'], dialogue: '“今晨河边抬走一个无名客，送去了回春堂。旁的说法我没亲眼见，不替人添。”', narration: '你记下酒客转述的回春堂去向，不把传话当作验尸结论。' }
+        : { ...base, dialogue: '“眼下只听说城门查得比往日严，别的还没有能当真的新消息。”', narration: '这次打听没有得到可核的新线索；你明确知道目前只有一条未证实的城门风声。' };
     case 'ask-name':
       return request.npcId === 'shen-yanqiu' ? { ...base, learnedNpcName: '沈砚秋', learnedNpcIdentity: '回春堂坐堂医' } : { ...base, npcLearnedFact: NAME_REFUSED };
     case 'observe-inn':
       return state.playerKnownFactIds.includes('inn-arrival-inquiry') ? base : { ...base, discoveredFactIds: ['inn-arrival-inquiry'], narration: '你留意门边湿伞和柜上的水迹。伙计提到天未亮时有人先来问过：今日是否会有一个带伤、背湿行囊的外乡客投店。来人没留姓名，只说午后便换地方。' };
     case 'observe-clinic':
+      return { ...base, discoveredFactIds: ['clinic-routine'], narration: '你看见药柜领用、伤者来处和留样各记在不同簿页。沈砚秋只在自己验过的项目后签名，传闻不会自动写进病案。' };
     case 'observe-scene':
+      return state.locationId === 'dock'
+        ? { ...base, discoveredFactIds: ['dock-salt-movement'], narration: '你沿岸看了一圈：脚夫按船号换班，空转运车先停在坡上，账房只认盖过验印的货签。几人口中的“丁字十七”明确指向一条待靠岸的官盐船，并非人名；货物是否有异仍待核验。' }
+        : { ...base, narration: '你逐一看过出入口、脚印和新近挪动的物件，没有发现足以单独定论的新痕迹。时间确实过去，眼前也没有被你漏看的明确入口。' };
     case 'ask-local-news':
+      return state.locationId === 'dock'
+        ? { ...base, discoveredFactIds: ['dock-salt-movement'], narration: '你没有锁定某个人搭话，只听岸边不同位置的工头报号、脚夫应班、车夫问验印。由这些现场动静可以确认：“丁字十七”是将靠岸的盐船编号，码头正为交接调人调车；谁在其中做手脚仍无从判断。' }
+        : { ...base, dialogue: request.npcId ? '“近况都在眼前。没有亲见的事，我不替旁人作保。”' : undefined, narration: '你得到的只有当地人愿意公开说的近况，没有把含混暗示记成事实。' };
     case 'leave-conversation':
-      return base;
+      return { ...base, narration: '你收住话头，退到一旁重新观察局面。五分钟过去，没有立场、钱物或线索因此凭空改变。' };
     default:
       return null;
   }

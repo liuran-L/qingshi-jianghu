@@ -1,13 +1,16 @@
 import { artSpent } from './arts.ts';
 import type { GameState } from './types.ts';
 import { initialCampaign, lifeRoutes, dayAt, campaignDay } from './campaign.ts';
-import { coreNames, evidenceNames, storyEvents } from './campaign-content.ts';
+import { coreNames, evidenceNames, firstActPreludes, storyEvents } from './campaign-content.ts';
 
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const integer = (v: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= min && v <= max;
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string') && new Set(v).size === v.length;
 const finalFlags = ['xia-victory', 'xia-defeat', 'xia-escort', 'public-truth', 'trade-public', 'trade-monopoly', 'shadow-public', 'shadow-rich', 'partial-trial', 'office-compromise', 'healer-clinic', 'healer-travel'];
-const flags = new Set([...storyEvents.flatMap(e => [...e.choices.flatMap(c => c.effect.flags ?? []), ...(e.missed.effect.flags ?? [])]), ...finalFlags]);
+const legacyResultTexts: Record<string, string[]> = {
+  'fire:missed': ['码头账房焚毁，账房未能逃出。脚夫说原账烧了，别处是否有副本无人肯说。'],
+};
+const flags = new Set([...storyEvents.flatMap(e => [...e.choices.flatMap(c => c.effect.flags ?? []), ...(e.missed.effect.flags ?? [])]), ...firstActPreludes.flatMap(item => item.flags ?? []), ...finalFlags]);
 
 /** 旧档完整缺字段才迁移。读取只校验快照，绝不推进或重播世界。 */
 export function decodeCampaign(s: GameState | null): GameState | null {
@@ -32,13 +35,18 @@ export function decodeCampaign(s: GameState | null): GameState | null {
     const e = storyEvents.find(event => event.id === id);
     if (!e || !record(r) || !integer(r.at, Math.min(c.startedAt ?? Infinity, dayAt(s, e.day)), s.worldMinutes) || !['missed', ...e.choices.map(o => o.id)].includes(r.choice) || typeof r.text !== 'string' || typeof r.witnessed !== 'boolean') return null;
     const expected = r.choice === 'missed' ? e.missed.text : e.choices.find(o => o.id === r.choice)!.reply;
-    if (r.text !== expected) return null;
+    if (r.text !== expected && !legacyResultTexts[`${id}:${r.choice}`]?.includes(r.text)) return null;
   }
   const earned = Object.entries(c.resolved).map(([id, r]) => {
     const event = storyEvents.find(e => e.id === id)!;
     return r.choice === 'missed' ? event.missed.effect : event.choices.find(o => o.id === r.choice)!.effect;
   });
   const earnedFlags = new Set(earned.flatMap(e => e.flags ?? []));
+  for (const entry of c.journal) {
+    if (!record(entry) || typeof entry.action !== 'string') continue;
+    const prelude = firstActPreludes.find(item => entry.action === `scout:${item.eventId}`);
+    for (const flag of prelude?.flags ?? []) earnedFlags.add(flag);
+  }
   const earnedEvidence = new Set<string>();
   for (const [id,r] of Object.entries(c.resolved).sort((a,b)=>a[1].at-b[1].at)) {
     const e=storyEvents.find(e=>e.id===id)!;
@@ -50,8 +58,13 @@ export function decodeCampaign(s: GameState | null): GameState | null {
   if (c.evidence.length !== earnedEvidence.size || !c.evidence.every(e => earnedEvidence.has(e))) return null;
   if (!c.flags.every(f => earnedFlags.has(f) || finalFlags.includes(f) && c.finale !== null && c.finaleStep >= 1) || ![...earnedFlags].every(f => c.flags.includes(f))) return null;
   let at = s.storyStartedAtMinutes;
+  const seenPreludes = new Set<string>();
   for (const entry of c.journal) {
     if (!record(entry) || !integer(entry.at, at, s.worldMinutes) || typeof entry.action !== 'string' || typeof entry.text !== 'string' || !integer(entry.money, -100000, 100000) || !integer(entry.debt, -100000, 100000)) return null;
+    if (entry.action.startsWith('scout:')) {
+      if (!firstActPreludes.some(item => entry.action === `scout:${item.eventId}`) || seenPreludes.has(entry.action)) return null;
+      seenPreludes.add(entry.action);
+    }
     at = entry.at;
   }
   if (c.activeEvent !== null && (typeof c.activeEvent !== 'string' || !storyEvents.some(e => e.id === c.activeEvent && dayAt(s, e.day) <= s.worldMinutes && e.location === s.locationId) || !!c.resolved[c.activeEvent])) return null;

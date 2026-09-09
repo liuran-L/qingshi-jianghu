@@ -31,11 +31,11 @@ void test('UI01 功法真实分支、四种状态、阅读锁与旧档投影', a
  for(const mutate of [(v:typeof s)=>{v.growth.medicine.availablePoints=1;},(v:typeof s)=>{v.growth.medicine.nodes=['medicine-bandage'];},(v:typeof s)=>{v.growth.medicine.nodes=['illegal' as never];}]) {const bad=structuredClone(s);mutate(bad);assert.equal(decodeSave(encodeSave(bad)),null);}
 });
 
-void test('UI02 情报六分类仅投影已知条目，更新/场景/同档重读隔离展开状态',()=>{
+void test('UI02 见闻札记七分类仅投影已知条目，更新/场景/同档重读隔离展开状态',()=>{
  const s=createInitialGame('旅人'), before=encodeSave(s), groups=knowledgeGroups(s);
- assert.deepEqual(groups.map(g=>g.title),['线索','已知事实','随身物','地点','人物','世界事件']);
+ assert.deepEqual(groups.map(g=>g.title),['见闻札记 · 亲见与取得','见闻札记 · 他人说法','见闻札记 · 待解疑问','随身物','地点','人物','世界事件']);
  for(const e of worldEvents) assert.ok(!JSON.stringify(groups).includes(e.hiddenSummary));
- assert.ok(!groups[4].entries.some(e=>e.id==='yue-hansheng'));
+ assert.ok(!groups[5].entries.some(e=>e.id==='yue-hansheng'));
  const scope=knowledgeScope(s,0);assert.notEqual(scope,knowledgeScope(s,1));
  assert.notEqual(scope,knowledgeScope({...s,locationId:'inn'},0));
  assert.notEqual(scope,knowledgeScope({...s,playerKnownFactIds:[...s.playerKnownFactIds,'cart-mark']},0));
@@ -56,7 +56,7 @@ void test('UI03 实际情报组件默认无详情，展开/收起与切分类、
  let tree=render();collect(tree,'button')[0].props.onClick();tree=render();
  assert.equal(collect(tree,'button')[0].props['aria-expanded'],true);assert.ok(renderToStaticMarkup(tree).includes(groups[0].entries[0].detail));
  collect(tree,'button')[0].props.onClick();assert.equal(collect(render(),'button')[0].props['aria-expanded'],false);
- collect(render(),'select')[0].props.onChange({target:{value:'facts'}});assert.equal(slots[1],null);assert.match(renderToStaticMarkup(render()),/此分类暂无已知条目/);
+ collect(render(),'select')[0].props.onChange({target:{value:'journal-hearsay'}});assert.equal(slots[1],null);assert.match(renderToStaticMarkup(render()),/此分类暂无已知条目/);
 });
 
 void test('UI04 返回实际按钮只有取消和确定，分别保留或丢弃内存',()=>{

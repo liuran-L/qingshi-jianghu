@@ -84,7 +84,7 @@ void test('N04 陆观澜独立拒答；跨日/切人/读档不无条件重开；
   state = await click(state, 'ask-name');
   state = await click(state, 'observe-inn');
   const trust = state.npcStates['lu-guanlan'].trust;
-  for (let i = 0; i < 10; i++) state = await click(state, 'observe-inn');
+  assert.ok(!available(state, 'observe-inn'), '已观察内容不得继续显示空结算入口');
   assert.equal(state.npcStates['lu-guanlan'].trust, trust);
   state = advanceGameTime(state, 480);
   assert.ok(!available(state, 'ask-name'));

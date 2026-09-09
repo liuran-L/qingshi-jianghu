@@ -19,7 +19,7 @@ export function inventoryView(s:GameState,actions:LimitedAction[]) {
  return [...old,...records].map(item=>({...item,actions:frozen?[]:actions.filter(a=>item.ids.includes(a.id)),status:frozen?'此页已冻结，只能查看。':item.ids.some(id=>actions.some(a=>a.id===id))?'眼前已有可办理的用途；确认后按原规则结算。':'当前没有符合地点、授权和前置的使用机会；不会因此消耗或复制物品。'}));
 }
 export function nextStep(s:GameState,actions:LimitedAction[]) {
- if(!s.player.alive||s.campaign.ending) return '此页已定稿。可保存、回看或读取生前的记录。';
+ if(!s.player.alive||s.campaign.ending) return '这一程已经结束。可保存、回看或读取此前的记录。';
  if(s.gatePhase==='detained') return actions.some(a=>a.id==='request-review')?'目前被扣留。可请求复核原话与证物；尚不能自由出城。':'目前不能自由行动，可保存并回看记录。';
  if(s.prologueEnding) return '案卷暂结。可保存这一页，或从下方继续盐路风云。';
  if(s.campaign.activeEvent) return '读完眼前的话，再选一种承担；也可暂离，但现场机会不会等你。';

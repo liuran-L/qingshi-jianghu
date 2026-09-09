@@ -6,7 +6,7 @@ import type { CampaignState, LifeRoute, LifeEnding, StoryChoice, StoryEffect, St
 import type { LimitedAction } from './limited-actions.ts';
 import { advanceGameTime } from './engine.ts';
 import { changeNpcRelationship } from './npc-memory.ts';
-import { coreNames, evidenceNames, routeNames, storyEvents } from './campaign-content.ts';
+import { coreNames, evidenceNames, firstActPreludes, routeNames, storyEvents } from './campaign-content.ts';
 
 export const lifeRoutes = Object.keys(routeNames) as LifeRoute[];
 const zeroRoutes = () => ({ xia: 0, trade: 0, shadow: 0, office: 0, healer: 0 });
@@ -34,7 +34,7 @@ const campaignNameDisclosure: Record<string, string> = {
   'lu-guanlan': '送来的名帖写着“陆观澜”，负剑客接过后没有否认。',
   'gu-qinghe': '书吏当面称他“顾清河大人”，姓名与官署名册相合。',
 };
-const action = (id: string, label: string): LimitedAction => ({ id: `journey-${id}`, label, input: label, mode: 'action' });
+const action = (id: string, label: string, disabledReason?: string): LimitedAction => ({ id: `journey-${id}`, label, input: label, mode: 'action', ...(disabledReason ? { disabledReason } : {}) });
 const stamp = (s: GameState, id: string, text: string, money = 0, debt = 0) => {
   s.campaign.journal.push({ at: s.worldMinutes, action: id, money, debt, text });
   s.logs = [...s.logs, { id: `journey-log:${s.worldMinutes}:${s.logs.length}`, atMinutes: s.worldMinutes, type: 'system', text }];
@@ -66,7 +66,7 @@ export function endLife(s: GameState, ending: LifeEnding): GameState {
   next.campaign.ending = ending;
   next.campaign.endedAt = next.worldMinutes;
   next.campaign.activeEvent = null;
-  stamp(next, `ending:${ending}`, `此生定稿：${endingTitles[ending]}。`);
+  stamp(next, `ending:${ending}`, `这一程写到末页：${endingTitles[ending]}。`);
   return tell(next, lifeSummary(next)!.facts.join('\n'));
 }
 
@@ -129,6 +129,12 @@ export function campaignActions(s: GameState): LimitedAction[] {
   if (c.finale) return finaleActions(s);
   const options: LimitedAction[] = [...artActions(s)];
   const event = upcomingEvent(s);
+  const prelude = event && firstActPreludes.find(item => item.eventId === event.id);
+  if (event && prelude && s.worldMinutes >= dayAt(s, event.day - 1) && s.worldMinutes < dayAt(s, event.day) && !c.journal.some(entry => entry.action === `scout:${event.id}`)) {
+    const tooLate = s.worldMinutes + prelude.minutes >= dayAt(s, event.day);
+    const reason = tooLate ? '距事件窗口太近，已来不及完成这次布置。' : s.player.money < prelude.money ? `需${prelude.money}两，当前只有${s.player.money}两。` : undefined;
+    options.push(action(`scout:${event.id}`, prelude.label, reason));
+  }
   if (event && s.worldMinutes >= dayAt(s, event.day)) options.push(action(`attend:${event.id}`, `前往 · ${event.title}（往返与交涉另计时）`));
   if (s.worldMinutes >= dayAt(s, 58)) {
     for (const route of lifeRoutes) if (!routeQualification(s, route)) options.push(action(`finale:${route}`, `为此生作结 · ${routeNames[route]}`));
@@ -197,7 +203,7 @@ function livingUntil(s: GameState, target: number): GameState {
 /** 页面与自动测试共用；无合法按钮就不产生任何副作用。 */
 export function applyCampaignAction(state: GameState, id: LimitedActionId): GameState {
   const choice = campaignActions(state).find(a => a.id === id);
-  if (!choice) return state;
+  if (!choice || choice.disabledReason) return state;
   let next = fresh(state);
   const beforeMoney = next.player.money;
   const beforeDebt = next.campaign.debt;
@@ -224,6 +230,15 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
     next.knownLocationIds = ['gate', 'inn', 'clinic', 'dock', 'temple', 'yamen'];
     next.selectedNpcId = null;
     next = settleCampaign(next);
+  } else if (aid.startsWith('scout:')) {
+    const eventId = aid.slice('scout:'.length);
+    const prelude = firstActPreludes.find(item => item.eventId === eventId)!;
+    next.player.money -= prelude.money;
+    next.campaign.flags = [...new Set([...next.campaign.flags, ...(prelude.flags ?? [])])];
+    next = elapse(next, prelude.minutes);
+    if (!next.campaign.ending && next.player.alive && !next.campaign.resolved[eventId]) {
+      next = tell(next, prelude.activeSource);
+    }
   } else if (aid.startsWith('attend:')) {
     const event = storyEvents.find(e => e.id === aid.split(':')[1])!;
     next = elapse(next, 60);
@@ -235,6 +250,8 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
         next = tell(next, campaignNameDisclosure[event.speaker] ?? `${coreNames[event.speaker]}当面报出姓名。`);
         next.npcKnowledge = { ...next.npcKnowledge, [event.speaker]: { ...next.npcKnowledge[event.speaker], observed: true, matched: true, knownName: coreNames[event.speaker] } };
       }
+      const prelude = firstActPreludes.find(item => item.eventId === event.id);
+      if (prelude) next = tell(next, prelude.naturalSource);
       for (let i = 0; i < event.opening.length; i++) next = tell(next, event.opening[i], i === 1 && next.campaign.npcAlive[event.speaker] ? coreNames[event.speaker] : '旁白', i === 1 && next.campaign.npcAlive[event.speaker] ? 'npc' : 'narration', i === 1 && next.campaign.npcAlive[event.speaker] ? event.speaker : undefined);
     }
   } else if (aid.startsWith('choose:') || aid.startsWith('leave:')) {
@@ -249,6 +266,8 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       next.campaign.resolved[eventId] = { choice: optionId ?? 'missed', at: next.worldMinutes, text, witnessed: true };
       next.campaign.activeEvent = null;
       next = tell(next, text);
+      const prelude = firstActPreludes.find(item => item.eventId === eventId);
+      if (prelude) next = tell(next, prelude.aftermath);
       if (eventId === 'assassin' && option?.effect.flags?.includes('gu-safe')) {
         next.npcKnowledge = { ...next.npcKnowledge, 'gu-qinghe': { ...next.npcKnowledge['gu-qinghe'], observed: true, matched: true, knownName: '顾清河', knownIdentity: '青石县令' } };
         next = tell(next, '顾清河。今日蒙你出手，记在我名下。至于案子，还是得看证据，不能拿一条救命之恩判旁人的死罪。', '顾清河', 'npc', 'gu-qinghe');
@@ -371,7 +390,13 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
     next = elapse(next, 15);
     if (!next.player.alive || next.campaign.ending) return next;
     for (const [eventId, result] of Object.entries(next.campaign.resolved)) {
-      if (!result.witnessed) { next = tell(next, `行旅带来的消息 · ${storyEvents.find(e => e.id === eventId)!.title}：${result.text}`); result.witnessed = true; }
+      if (!result.witnessed) {
+        const event = storyEvents.find(e => e.id === eventId)!;
+        const prelude = firstActPreludes.find(item => item.eventId === eventId);
+        next = tell(next, `行旅带来的消息 · ${event.title}：${prelude?.recoverySource ?? result.text}`);
+        if (prelude) next = tell(next, prelude.aftermath);
+        result.witnessed = true;
+      }
     }
   } else if (aid === 'wait') {
     const event = upcomingEvent(next);
@@ -388,6 +413,20 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
   if (!next.player.alive && !next.campaign.ending) next = endLife(next, 'dead');
   stamp(next, aid, choice.label, next.player.money - beforeMoney, next.campaign.debt - beforeDebt);
   return next;
+}
+
+/** 走回事发地点可以补看已经留下的痕迹；只改“玩家已得知”，不重演事件、不补发奖励。 */
+export function observeCampaignAftermath(state: GameState): GameState {
+  if (!campaignActive(state) || state.campaign.ending || state.campaign.activeEvent) return state;
+  const prelude = firstActPreludes.find((item) => {
+    const event = storyEvents.find(candidate => candidate.id === item.eventId)!;
+    const result = state.campaign.resolved[item.eventId];
+    return event.location === state.locationId && result?.choice === 'missed' && !result.witnessed;
+  });
+  if (!prelude) return state;
+  const next = fresh(state);
+  next.campaign.resolved[prelude.eventId].witnessed = true;
+  return tell(tell(next, `你在事发地点补看到的痕迹：${prelude.recoverySource}`), prelude.aftermath);
 }
 
 const finaleOpening: Record<LifeRoute, string> = {
@@ -482,6 +521,8 @@ function performBattle(s:GameState,event:string,tactic:BattleTactic):GameState {
     next.campaign.resolved[event]={choice:effective.id,at:next.worldMinutes,text:effective.reply,witnessed:true};
     next.campaign.activeEvent=null;
     next=tell(next,effective.reply);
+    const prelude = firstActPreludes.find(item => item.eventId === event);
+    if (prelude) next = tell(next, prelude.aftermath);
   } else {
     if(tactic==='retreat') next.campaign.flags.push('xia-escort');
     else if(tactic!=='surrender') next.campaign.flags.push(verdict.win?'xia-victory':'xia-defeat');

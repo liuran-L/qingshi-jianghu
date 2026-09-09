@@ -78,7 +78,7 @@ export function resolvePrologue(state: GameState, request: InteractionRequest): 
     }
     case 'inspect-cargo': return { timeCostMinutes: 45, narration: left <= 45 ? '赶到交接处时，车队已经离城。宁不平撤回临时查验的人手：晚了一步，眼下不能把未验的货车写成已扣。' : `你随宁不平到城门内的转运交接处，查完后回候事廊。${state.cartMarkObserved ? '车夫右眉的疤与旧观察相合' : '你记下车夫右眉的旧疤'}，车门铰链留着鱼鳞形黑蜡。宁不平取蜡样、核车号，封条尚未落印；下午三点仍是临时查验的最后期限。`, discoveredFactIds: left > 45 ? ['cart-verified', 'cart-mark'] : [] };
     case 'check-release-ledger': return { timeCostMinutes: 20, narration: left <= 20 ? '放行簿尚未核完，离城时限已过。缺少及时完成的封验手续，货车按原程离开。' : '宁不平对照车号和签押，发现免检记录与车夫记下的“门钱”相合。差役去取原簿时，守门差役正撕下对应的一页；湿纸没有烧透，日期和签押还在。车夫与递话的小厮被分开问话，两份口供均指向收钱放行与传递行程消息。', discoveredFactIds: left > 20 ? ['ledger-verified'] : [] };
-    case 'seal-salt-evidence': return { timeCostMinutes: 15, narration: left <= 15 ? '最后的交存手续未能赶在三点前完成。临时查验期限已过，宁不平不能把已经离城的货车登记为封存。残片仍在你手中。' : '残片的断边与车中文书存根相接，丁字十七、县衙火漆、车门黑蜡和放行簿的日期逐一对上。你忽然想起雨夜程守义把那半张纸塞进自己行囊的动作——袭击者要找的是他带走的盐引，不是你的姓名。', dialogue: left <= 15 ? undefined : '“这是马三刀收钱免检、递出消息和毁簿的证据，不是整条盐路主谋的判词。残片、病案副本和簿页由县衙封存，车扣下，人带走。给你三日暂留凭条，日后仍须候询。”', discoveredFactIds: left > 15 ? ['sealed-case'] : [] };
+    case 'seal-salt-evidence': return { timeCostMinutes: 15, narration: left <= 15 ? '最后的交存手续未能赶在三点前完成。临时查验期限已过，宁不平不能把已经离城的货车登记为封存。残片仍在你手中。' : '残片的断边与车中文书存根相接，丁字十七、县衙火漆、车门黑蜡和放行簿的日期逐一对上。你只能确认程守义曾把半张纸塞进你的行囊，而袭击者、纸张原本要去哪里以及谁提前认得你的行囊，仍须另证。', dialogue: left <= 15 ? undefined : '“这是马三刀收钱免检、递出消息和毁簿的证据，不是整条盐路主谋的判词。残片、病案副本和簿页由县衙封存，车扣下，人带走。给你三日暂留凭条，日后仍须候询。”', discoveredFactIds: left > 15 ? ['sealed-case', 'public-yamen-role', 'public-river-gang-role', 'public-qingyue-role', 'act-one-surface-conflict', 'act-one-involvement'] : [] };
     default: return null;
   }
 }

@@ -1,7 +1,7 @@
 import { initialBattles } from './battle.ts';
 import { initialArts } from './arts-content.ts';
 import { resolveInteraction } from './interaction-rules.ts';
-import { initialCampaign, settleCampaign, applyCampaignAction, gameEnded, campaignActive, campaignDeadline } from './campaign.ts';
+import { initialCampaign, settleCampaign, applyCampaignAction, gameEnded, campaignActive, campaignDeadline, observeCampaignAftermath } from './campaign.ts';
 import { initialDayOne, applyDayOne, presentNpcIds } from './day-one.ts';
 import { initialDayTwo, applyDayTwo } from './day-two.ts';
 import { initialEconomy, applyEconomy } from './economy.ts';
@@ -133,6 +133,24 @@ export function applyScheduledWorldEvents(state: GameState): GameState {
       logs: [...next.logs, log(next, 'discovery', `获得情报：${getKnownFact(fact).text}`)],
     };
   }
+  if (elapsedMinutes >= 36 * 60 && next.player.alive && !campaignActive(next) && !next.playerKnownFactIds.includes('day2-public-notice')) {
+    next = {
+      ...next,
+      playerKnownFactIds: [...next.playerKnownFactIds, 'day2-public-notice'],
+      dialogue: [...next.dialogue, line('旁白', '第二日将尽，县衙把一张加验告示贴到城门与渡口：近日盐路交接须复核船号、路引和经手签押。你至少可以确定，眼前的异常已经牵到盐路、渡口与官面秩序；告示没有写谁有罪。', 'narration')],
+      logs: [...next.logs, log(next, 'discovery', `获得情报：${getKnownFact('day2-public-notice').text}`)],
+    };
+  }
+  const publicConflictFacts: KnownFactId[] = ['public-yamen-role', 'public-river-gang-role', 'public-qingyue-role', 'act-one-surface-conflict', 'act-one-involvement'];
+  const missingPublicFacts = publicConflictFacts.filter(id => !next.playerKnownFactIds.includes(id));
+  if (elapsedMinutes >= 40 * 60 && next.player.alive && !campaignActive(next) && missingPublicFacts.length) {
+    next = {
+      ...next,
+      playerKnownFactIds: [...next.playerKnownFactIds, ...missingPublicFacts],
+      dialogue: [...next.dialogue, line('旁白', '第三日上午，三种公开迹象同时出现：县衙告示写明官盐封验与城门秩序由公门负责；码头船旗、工头点卯和脚夫让路表明漕帮掌握河道交接；青岳门名帖与佩剑弟子则公开说明门派因同门之事来到县城。荒道呼喊、被提前辨认的行囊与同号盐船把你接进这段时序，但三方的表面冲突仍不能证明具体罪责、暗中交易或幕后责任。', 'narration')],
+      logs: [...next.logs, ...missingPublicFacts.map(id => log(next, 'discovery', `获得情报：${getKnownFact(id).text}`))],
+    };
+  }
   return next;
 }
 
@@ -257,7 +275,7 @@ export function movePlayer(state: GameState, destination: LocationId): GameState
   const next = discoverPresentNpcs({ ...advanced, dayOne: { ...advanced.dayOne, menu: false, gatePosition: 'line' }, dayTwo: { ...advanced.dayTwo, menu: false }, growth: { ...advanced.growth, menu: false }, locationId: destination, selectedNpcId: destination === 'yamen' ? 'ning-buping' : destination === 'dock' && (advanced.dayTwo.departurePlan === 'night-ferry' || advanced.dayTwo.brokerContact === 'offered') ? null : target.npcIds[0] ?? null });
   const additions = [line('旁白', target.arrival, 'narration')];
   if (!campaignActive(state) && destination === 'clinic' && !state.npcKnowledge['shen-yanqiu'].observed) additions.push(line(getNpcDisplayName(next, 'shen-yanqiu'), '“什么兵器伤的，在哪里受伤？记不清也可直说。检查范围和布条归属，先由你决定。”', 'npc'));
-  return advanceCargo(observeLocalWorldEvent({ ...next, ...(campaignActive(next) ? { selectedNpcId: null, campaign: { ...next.campaign, activeEvent: null } } : {}), dialogue: [...advanced.dialogue, ...additions], logs: [...advanced.logs, log(next, 'move', `前往${target.name}，耗时${estimate.totalMinutes}分钟。`)] }));
+  return observeCampaignAftermath(advanceCargo(observeLocalWorldEvent({ ...next, ...(campaignActive(next) ? { selectedNpcId: null, campaign: { ...next.campaign, activeEvent: null } } : {}), dialogue: [...advanced.dialogue, ...additions], logs: [...advanced.logs, log(next, 'move', `前往${target.name}，耗时${estimate.totalMinutes}分钟。`)] })));
 }
 
 /** 规则事务是唯一写入口；AIProposal 中不存在任何数值、物品、地点或知识字段。 */

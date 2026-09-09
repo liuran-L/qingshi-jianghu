@@ -216,7 +216,8 @@ void test('D14 拒答姓名跨场景仍锁定；新闻回答后锁定，重复�
   const abilities = structuredClone(state.player.abilities);
   const money = state.player.money;
   const relations = structuredClone(state.npcStates);
-  for (let i = 0; i < 12; i++) state = await click(state, 'observe-inn');
+  state = await click(state, 'observe-inn');
+  assert.ok(!actions(state).includes('observe-inn'), '内容结算后应隐藏观察入口');
   assert.deepEqual(state.player.abilities, abilities);
   assert.deepEqual(state.npcStates, relations);
   assert.equal(state.player.money, money);

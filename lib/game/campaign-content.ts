@@ -6,6 +6,57 @@ export const routeNames: Record<LifeRoute, string> = { xia: '侠行', trade: '�
 export const coreNames: Record<string, string> = { 'ma-sandao': '马三刀', 'su-wantang': '苏晚棠', 'gu-qinghe': '顾清河', 'ning-buping': '宁不平', 'qiao-wu': '乔五', 'shen-yanqiu': '沈砚秋', 'yue-hansheng': '岳寒声', 'lu-guanlan': '陆观澜' };
 export const evidenceNames: Record<string, string> = { official: '县衙真档副本', transport: '漕运账副本', medicine: '药库出入记录', testament: '掌门遗嘱', witness: '幸存商旅证言' };
 
+export interface FirstActPrelude {
+  eventId: 'temple' | 'assassin' | 'inheritance' | 'fire' | 'identity';
+  label: string;
+  minutes: number;
+  money: number;
+  flags?: string[];
+  naturalSource: string;
+  activeSource: string;
+  recoverySource: string;
+  aftermath: string;
+}
+
+/** 第四至八日只写玩家可观察的前兆与来源，不在文本中确认幕后归属。 */
+export const firstActPreludes: FirstActPrelude[] = [
+  {
+    eventId: 'temple', label: '循城外药渣与新脚印查到破庙（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '药铺伙计送药归来，提到城外破庙旁有带血草叶；这是去现场的自然来路。',
+    activeSource: '你沿药渣、折断的芦茎和一深一浅两行脚印查到破庙，只能确认有伤者进庙、另有人仍在搜索。',
+    recoverySource: '错过后，庙祝交给你一截换下的带血绷带，并指认追问者往北山去了；绷带不说明谁下的手。',
+    aftermath: '破庙的火灰被雨打散，来换香的人只谈亲见的伤者与脚印；岳寒声的去向仍按你当时是否护住他而定。',
+  },
+  {
+    eventId: 'assassin', label: '核对县衙廊门、琴弦与屋脊落脚处（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '县衙公开请见证人入廊，值守差役却提前关闭侧门；告示与反常戒备把你带到现场。',
+    activeSource: '你发现琴弦新换、廊门门索发涩，屋脊瓦面还有逆着雨痕的干脚印；这些迹象说明有人预备从高处动手，不能据此指认雇主。',
+    recoverySource: '错过后，书吏让你看箭孔、断弦和当日值守簿；三样实物能还原刺杀发生过，不能替死者说出幕后人。',
+    aftermath: '县衙补上廊门木板并另存值守簿；差役只按顾清河是否生还、书吏是否获救和你留下的记录回应。',
+  },
+  {
+    eventId: 'inheritance', label: '查验讣帖来路与赴山名册（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '青岳门讣帖公开送到客栈，门人分头召回同门；讣帖只宣布死讯与议位，不宣判死因。',
+    activeSource: '你核过讣帖纸印、送帖人的门牌和赴山名册，确认青岳门正召人议位，也确认陆观澜另在追问师父死因；两件事不能混成定论。',
+    recoverySource: '错过后，客栈保留一张讣帖存根与未赴山者名单；它能补足公开继承争端，不能补回当面承诺。',
+    aftermath: '客栈酒桌开始争论谁该赴山，苏晚棠只确认谁在店里签过名；陆观澜按你实际交付的遗嘱、名单或路粮回应。',
+  },
+  {
+    eventId: 'fire', label: '提前整顿账房水缸与疏散绳（45分钟、三两）', minutes: 45, money: 3, flags: ['firebreak-ready'],
+    naturalSource: '码头连续两日把油罐堆到木账房旁，守夜水缸却见底；风向和换岗空缺让火险已可观察。',
+    activeSource: '你逐只验过空水缸、油罐领用仓号与东侧风口，花三两请脚夫补水、移开一排油罐并预置破窗钩和疏散绳。代价与布置都当面记账，仍不能证明谁会纵火。',
+    recoverySource: '错过后，幸存脚夫交出烧裂的油罐牌和空水缸领用单；它们说明火前有人撤水、挪油，却不等于幕后人的供词。',
+    aftermath: '码头按实际损失重排船位：活下来的账房、保住的东仓、留下的账册与抓到的人各自形成不同回声，没有一项自动补齐其余后果。',
+  },
+  {
+    eventId: 'identity', label: '比对封城榜、旧口供与复核簿（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '城门增挂横木并贴出逐栏复核姓名的封城榜；这是县衙公开的秩序措施，不等于任何人已定罪。',
+    activeSource: '你比对榜文、旧口供页码和新复核簿，确认自报、登记、验过三栏不会互相覆盖；旧话与改口都会留下。',
+    recoverySource: '错过后，城门公示栏仍留复核规则和你的旧登记页号；可以补办身份，却不能重演封城当日的担保机会。',
+    aftermath: '城门往后按真实路引、担保簿、旧口供差异和水道记录盘问；马三刀与新差役只回应自己经手的栏目。',
+  },
+];
+
 /** 锚点共用时间轴，取证、救人、谋生各有真实代价；缺席有独立结果。 */
 export const storyEvents: StoryEvent[] = [
   { id: 'temple', day: 4, title: '破庙一灯', location: 'temple', speaker: 'yue-hansheng',
@@ -34,11 +85,12 @@ export const storyEvents: StoryEvent[] = [
   { id: 'fire', day: 7, title: '火里只够走一次', location: 'dock', speaker: 'su-wantang',
     opening: ['码头账房的火舌已舔上梁。苏晚棠攥着一只空茶壶，壶嘴还往下滴水。', '“里头有人。账也在里头。”风忽然转了向，你只来得及选一边。'],
     choices: [
+      { id: 'prepared', label: '按已布置的水缸、破窗钩与疏散绳分组救援', need: { flag: 'firebreak-ready' }, reply: '补满的水缸压住东侧火头，脚夫用破窗钩拉开木窗，你沿疏散绳把账房带出。东仓和人都保住了，但原账在内室烧毁，预先布置也惊动了纵火者；你没抓到人，只从苏晚棠保存的抄账继续查。', effect: { route: 'xia', flags: ['clerk-safe', 'cargo-safe'], evidence: ['transport'], help: 'su-wantang' } },
       { id: 'people', label: '砸开后窗，把账房拖出来', reply: '你们拽出两个人，没能抢下原账。苏晚棠把自己藏的抄账交给你：“人活着，还能说话。纸我另有一份。”', effect: { route: 'xia', flags: ['clerk-safe'], evidence: ['transport'], help: 'su-wantang' } },
       { id: 'ledger', label: '从近门抢出运输账，不深入火场', reply: '你抢出烫手的账册。账房后门随即塌了，你听见里面的喊声变低；这份纸会一直带着焦味。', effect: { route: 'shadow', evidence: ['transport'], harm: 'su-wantang' } },
       { id: 'cargo', label: '召脚夫保住码头粮货', reply: '你把粮包推离火墙。东仓得以保住，账房却塌了；脚夫们答应日后替你接一次货。', effect: { route: 'trade', money: 8, flags: ['cargo-safe'], help: 'qiao-wu' } },
       { id: 'cordon', label: '帮官差截住纵火者，留下目击笔录', reply: '火场救援交给脚夫，你随差役截住一名纵火者。他说不出幕后人，只留下油罐领用的仓号。', effect: { route: 'office', evidence: ['transport'], help: 'ning-buping' } },
-    ], missed: { text: '码头账房焚毁，账房未能逃出。脚夫说原账烧了，别处是否有副本无人肯说。', effect: {} } },
+    ], missed: { text: '码头账房焚毁，值夜账房未能逃出，东仓也被引燃。原账烧失；幸存脚夫记得油罐仓号，苏晚棠手里是否另有抄件仍可继续追问。', effect: {} } },
   { id: 'identity', day: 8, title: '封城后的姓名', location: 'gate', speaker: 'ma-sandao',
     opening: ['城门落下横木。马三刀被叫来辨认签押，新的差役持着复核簿；旧口供一页没少。', '“自报的，登记的，验过的，三栏分着写。你自己认哪一栏？”'],
     choices: [

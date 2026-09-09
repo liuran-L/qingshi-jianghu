@@ -14,13 +14,16 @@ export interface LimitedAction {
   label: string;
   input: string;
   mode: InteractionMode;
+  /** 可见但暂不能执行时，必须把具体原因直接告诉玩家。 */
+  disabledReason?: string;
 }
 
-const action = (id: LimitedActionId, label: string, input: string, mode: InteractionMode): LimitedAction => ({
+const action = (id: LimitedActionId, label: string, input: string, mode: InteractionMode, disabledReason?: string): LimitedAction => ({
   id,
   label,
   input,
   mode,
+  ...(disabledReason ? { disabledReason } : {}),
 });
 
 /** 城门放行必须有玩家已经提出或持有的现实依据，不能只靠重复要求。 */
@@ -63,8 +66,8 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
         ...(!state.npcKnowledge['ma-sandao'].knownName ? [action('ask-guard-name', '反问差役如何称呼', '敢问差爷如何称呼？', 'speech')] : []),
       ];
       if (!state.knownClueIds.includes('abnormal-wound')) openingChoices.push(action('inspect-wound', '检查左肋伤口', '我低头仔细检查左肋的伤口。', 'action'));
-      if (!state.inventoryItemIds.includes('ding17-fragment')) openingChoices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));
-      else if (!state.knownClueIds.includes('black-scale-wax')) openingChoices.push(action('inspect-fragment', '查看行囊中的残片', '我再次检查行囊里的那张残片。', 'action'));
+      if (!state.knownClueIds.includes('ding17-fragment')) openingChoices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));
+      else if (state.inventoryItemIds.includes('ding17-fragment') && !state.knownClueIds.includes('black-scale-wax')) openingChoices.push(action('inspect-fragment', '查看行囊中的残片', '我再次检查行囊里的那张残片。', 'action', state.player.fatigue >= 85 ? '疲劳过重，先休息后再细看。' : undefined));
       return openingChoices;
     }
 
@@ -84,8 +87,8 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
       if (state.playerKnownFactIds.includes('ma-private-bribe-signal') && state.player.money >= 2) choices.push(action('offer-bribe', '递两两，请按私下暗示通融', '方才的暗示我明白。这两两银子是明确代价，请照说好的通融。', 'speech'));
     }
     if (!state.knownClueIds.includes('abnormal-wound')) choices.push(action('inspect-wound', '检查左肋伤口', '我低头仔细检查左肋的伤口。', 'action'));
-    if (!state.inventoryItemIds.includes('ding17-fragment')) choices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));
-    else if (!state.knownClueIds.includes('black-scale-wax')) choices.push(action('inspect-fragment', '查看行囊中的残片', '我再次检查行囊里的那张残片。', 'action'));
+    if (!state.knownClueIds.includes('ding17-fragment')) choices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));
+    else if (state.inventoryItemIds.includes('ding17-fragment') && !state.knownClueIds.includes('black-scale-wax')) choices.push(action('inspect-fragment', '查看行囊中的残片', '我再次检查行囊里的那张残片。', 'action', state.player.fatigue >= 85 ? '疲劳过重，先休息后再细看。' : undefined));
     if (!state.playerKnownFactIds.includes('gate-selective-inspection')) choices.push(action('observe-gate', '观察城门四周', '我不动声色地观察城门告示和来往行旅。', 'action'));
     return choices;
   }
@@ -95,7 +98,7 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
     if (npcId && !state.npcKnowledge[npcId]?.knownName) choices.push(action('ask-name', '询问对方如何称呼', '敢问阁下如何称呼？', 'speech'));
     choices.push(
       action('ask-news', state.playerKnownFactIds.includes('inn-corpse-rumor') ? '追问无名尸传闻' : '打听近日见闻', '近来县里可有什么反常的事？', 'speech'),
-      action('observe-inn', '观察客栈大堂', '我留意客栈大堂里的客人、出入口和动静。', 'action'),
+      ...(!state.playerKnownFactIds.includes('inn-arrival-inquiry') ? [action('observe-inn', '观察客栈大堂', '我留意客栈大堂里的客人、出入口和动静。', 'action')] : []),
     );
     if (npcId === 'su-wantang') {
       choices.unshift(action('request-room', '询问客房', '掌柜，这里可还有客房？', 'speech'));
@@ -107,7 +110,7 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
   if (state.locationId === 'clinic') {
     const choices: LimitedAction[] = [];
     if (!state.npcKnowledge['shen-yanqiu']?.knownName) choices.push(action('ask-name', '询问医者如何称呼', '敢问先生如何称呼？', 'speech'));
-    choices.push(action('observe-clinic', '观察医馆陈设', '我留意医馆里的药柜、器具和来往之人。', 'action'));
+    if (!state.playerKnownFactIds.includes('clinic-routine')) choices.push(action('observe-clinic', '观察医馆陈设', '我留意医馆里的药柜、器具和来往之人。', 'action'));
     if (state.player.injury !== '无') choices.unshift(action('request-treatment', '请求处理伤口', '请帮我看看这处伤口，血一直止不住。', 'speech'));
     if (state.triggeredWorldEventIds.includes('nameless-corpse') && !state.playerKnownFactIds.includes('clinic-corpse-details')) {
       choices.push(action('ask-corpse', '询问后堂的担架', '方才抬进后堂的人出了什么事？', 'speech'));
@@ -122,10 +125,12 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
     return choices;
   }
 
+  const atDock = state.locationId === 'dock';
+  const unattendedDock = atDock && npcId === null;
   return [
     ...(npcId && !state.npcKnowledge[npcId]?.knownName && !state.npcKnowledge[npcId]?.learnedFacts.includes(NAME_REFUSED) ? [action('ask-name', '询问对方如何称呼', '敢问阁下如何称呼？', 'speech')] : []),
-    action('ask-local-news', '试探此地近况', '这里近日可有什么异样？', 'speech'),
-    action('observe-scene', '观察四周', '我仔细观察四周的人、物件和出入口。', 'action'),
+    ...(atDock && !state.playerKnownFactIds.includes('dock-salt-movement') ? [action('ask-local-news', '试探此地近况', unattendedDock ? '我在岸边听脚夫与船工议论近日的船货动静。' : '这里近日可有什么异样？', unattendedDock ? 'action' : 'speech')] : []),
+    ...(atDock && !state.playerKnownFactIds.includes('dock-salt-movement') ? [action('observe-scene', '观察四周', '我仔细观察四周的人、物件和出入口。', 'action')] : []),
     action('leave-conversation', '暂不交谈', '我没有继续搭话，只在一旁留意动静。', 'action'),
   ];
 }

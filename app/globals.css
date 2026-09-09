@@ -36,9 +36,11 @@ button { cursor: pointer; }
 .character-portrait { position: absolute; z-index: 1; right: 3%; bottom: 0; height: 100%; width: min(58%, 380px); object-fit: contain; pointer-events: none; filter: drop-shadow(0 5px 12px rgb(0 0 0 / 15%)); }
 .story-stage > div { max-width: 48%; }
 .dialogue-window { margin-top: 1rem; }
+.action-region { min-height: calc(var(--action-slots, 6) * 6.5rem); }
 .dialogue-paper { border-top: 3px solid #8c463b; border-right: 1px solid #a69c83; border-bottom: 1px solid #a69c83; border-left: 1px solid #a69c83; background: #f3eedf; box-shadow: inset 0 0 30px rgb(68 53 27 / 5%); }
 .player-avatar { width: 44px; height: 48px; object-fit: cover; object-position: center 17%; border: 1px solid #a59b81; background: #d9d7c6; }
 @media (max-width: 639px) { .story-stage { min-height: 285px; } .scene-description { display: none; } .story-stage > div { max-width: 48%; } .story-stage h2 { font-size: 1.5rem; } .character-portrait { width: 62%; right: 0; } .dialogue-paper { min-height: 210px; } }
+@media (min-width: 640px) { .action-region { min-height: calc(var(--action-slots, 6) * 2.25rem + 2.25rem); } }
 .scene::before { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgb(10 16 13 / 88%), transparent 70%); }
 .scene-gate { background-image: radial-gradient(circle at 72% 24%, #a9b3a3 0, transparent 24%), linear-gradient(135deg, #435348, #223129 48%, #101915); }
 .scene-inn { background-image: radial-gradient(circle at 22% 28%, #a77243 0, transparent 18%), linear-gradient(120deg, #4e3425, #1d2922 58%, #101612); }
