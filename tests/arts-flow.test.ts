@@ -53,14 +53,14 @@ for(const tree of ['step','medicine','martial','speech'] as ArtTree[]) void test
  assert.match(artTrainingBlock({...latest,gatePhase:'detained'},tree)!,/自由行动/);
 });
 
-void test('G06 首点免费、单日限制、授点来源不可删除、完整旧档补新字段',async()=>{
+void test('G06 首点免费、单日限制、授点来源不可删除、缺字段旧档拒绝',async()=>{
  let s=await beginning();s=await click(s,'journey-care');s=await click(s,'journey-wait');s=await click(s,'journey-attend:temple');s=await click(s,'journey-choose:temple:medicine');
  const money=s.player.money,time=s.worldMinutes;
  assert.equal(available(s,'journey-teach:medicine'),true);
  s=await click(s,'journey-teach:medicine');assert.equal(s.player.money,money);assert.equal(s.worldMinutes-time,60);assert.equal(s.growth.medicine.availablePoints,1);
  assert.equal(available(s,'journey-teach:medicine'),false);assert.equal(available(s,'journey-arts:train:medicine'),false);
  const old=JSON.parse(encodeSave(s));delete old.arts;delete old.battles;
- const loaded=decodeSave(JSON.stringify(old));assert.ok(loaded);assert.deepEqual(loaded.arts,{schema:1,grants:[],learned:[]});assert.deepEqual(loaded.battles,{schema:1,records:[]});
+ assert.equal(decodeSave(JSON.stringify(old)),null);
  let m=await beginning();m=await click(m,'journey-care');m=await click(m,'journey-wait');m=await click(m,'journey-attend:temple');m=await click(m,'journey-choose:temple:shelter');m=await click(m,'journey-arts:mentor:martial');
  const removed=JSON.parse(encodeSave(m));delete removed.arts;assert.equal(decodeSave(JSON.stringify(removed)),null);
  const malformed=structuredClone(m);malformed.arts.learned.push({id:'martial-restraint',at:m.worldMinutes,grant:m.arts.grants[0].id});assert.equal(decodeSave(encodeSave(malformed)),null);

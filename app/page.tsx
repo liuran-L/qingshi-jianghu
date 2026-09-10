@@ -60,7 +60,7 @@ import { continueReading, createActionRunner, readingPosition, finishPrologueDem
 import { endingSummary, prologueNotice } from '@/lib/game/prologue';
 import { getSaveRepository } from '@/lib/game/save-repository';
 import { consumeSceneReturn, createManualSave as createSaveOperation, deleteSave, loadSave, overwriteSave, renameSave } from '@/lib/game/save-operations';
-import { findEmptyManualSlot, MANUAL_SAVE_LIMIT, orderSaveSummaries, type SaveSlotId, type SaveSlotSummary } from '@/lib/game/storage';
+import { findEmptyManualSlot, MANUAL_SAVE_LIMIT, orderSaveSummaries, SAVE_RESET_MESSAGE, type SaveSlotId, type SaveSlotSummary } from '@/lib/game/storage';
 import type { GameState } from '@/lib/game/types';
 import { campaignActive, gameEnded, lifeSummary, campaignDay, routeQualification, patron } from '@/lib/game/campaign';
 import { routeNames } from '@/lib/game/campaign-content';
@@ -135,6 +135,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
       void (async () => {
         try {
           setStandaloneEntry(isStandaloneDisplay(window.matchMedia('(display-mode: standalone)').matches, (navigator as Navigator & { standalone?: boolean }).standalone));
+          if (await saveRepository.prepareVersion()) setNotice(SAVE_RESET_MESSAGE);
           setSaveExists(await saveRepository.hasAny());
           const restored = consumeSceneReturn();
           if (restored) { setInstantDialogue(true); setReservedActionSlots(reserveActionSlots(6, getLimitedActions(restored, restored.selectedNpcId), campaignActive(restored))); setGame(restored); setDialogueIndex(Math.max(0, restored.dialogue.length - 1)); }
@@ -480,14 +481,12 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
               )}
             </details>}
 
-            {battleId && !game.campaign.ending && (battleId === 'assassin'
-              ? <section className="my-4 space-y-1 border border-cinnabar/30 p-4 text-sm leading-6" aria-label="冲突形势">
-                  <h3 className="font-serif text-lg">{battles[battleId].title}</h3>
-                  <p>{battles[battleId].cause}；{battles[battleId].opponent}正封住退路。</p>
-                  <p>眼前要护住：{battles[battleId].goal}。</p>
-                  <p>并肩的人：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+(a.injured?'（负伤）':'')).join('；') || '眼下无人能与你并肩'}</p>
-                </section>
-              : <section className="my-4 border border-cinnabar/30 p-4 text-sm" aria-label="冲突形势"><h3 className="font-serif text-lg">{battles[battleId].title}</h3><p>起因：{battles[battleId].cause}；对手：{battles[battleId].opponent}</p><p>目标：{battles[battleId].goal}。失守可能失证、增加追查或使受护者遇害；撤退只保证尝试脱离自己，投降会结束旅程。</p><p>可助阵：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+' · 战斗等级 '+a.level+(a.injured?'（负伤）':'')).join('；') || '目前没有满足在场或约定、信任和敌意条件的同伴'}</p></section>)}
+            {battleId && !game.campaign.ending && <section className="my-4 space-y-1 border border-cinnabar/30 p-4 text-sm leading-6" aria-label="冲突形势">
+              <h3 className="font-serif text-lg">{battles[battleId].title}</h3>
+              <p>{battles[battleId].cause}；{battles[battleId].opponent}正封住退路。</p>
+              <p>眼前要护住：{battles[battleId].goal}。</p>
+              <p>并肩的人：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+(a.injured?'（负伤）':'')).join('；') || '眼下无人能与你并肩'}</p>
+            </section>}
             <section className="dialogue-window" aria-label="当前对话">
               <div className="dialogue-paper min-h-[170px] p-5 sm:p-6">
                 <button type="button" className="w-full text-left" onClick={confirmLine} aria-label={currentLine ? `${currentLine.speaker}：${playerText(currentLine.text, game)}。确认以跳过显示或继续。` : '此刻无人开口'}>

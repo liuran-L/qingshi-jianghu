@@ -1,11 +1,11 @@
 import type { GameState } from './types.ts';
-import { initialArts, artNodes, artTrees, totalArtPoints, type ArtTree } from './arts-content.ts';
+import { artNodes, artTrees, totalArtPoints, type ArtTree } from './arts-content.ts';
 import { storyEvents } from './campaign-content.ts';
 const record=(x:unknown):x is Record<string,unknown>=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const time=(x:unknown,s:GameState)=>typeof x==='number'&&Number.isSafeInteger(x)&&x>=s.storyStartedAtMinutes&&x<=s.worldMinutes;
 export function decodeArts(s:GameState|null):GameState|null {
  if(!s) return null;
- if(!Object.hasOwn(s,'arts')) s={...s,arts:initialArts()};
+ if(!Object.hasOwn(s,'arts')) return null;
  const a=s.arts;
  if(!record(a)||a.schema!==1||!Array.isArray(a.grants)||!Array.isArray(a.learned)||totalArtPoints(s)>7) return null;
  const grantIds=new Set<string>(), used=new Set<string>(), nodes=new Set<string>();

@@ -23,7 +23,7 @@ function setup(t: { after: (fn: () => void) => void }) {
   return { storage, repo: serializeSaveRepository(new BrowserSaveRepository()), state: createInitialGame('回归测试客') };
 }
 const prompts = (answers: boolean[] = [], label: string | null = '测试档'): SavePrompts => ({ confirm: () => answers.shift() ?? false, prompt: () => label });
-const key = (slot: string) => `qingshi-jianghu-save-v5:${slot}`;
+const key = (slot: string) => `qingshi-jianghu-save-v7:${slot}`;
 
 void test('S01 新开局→自动保存→规则推进→自动保存→重建仓库恢复完整状态', async (t) => {
   const { repo, state } = setup(t);
@@ -258,6 +258,7 @@ void test('S15 异步保存串行化：慢旧档不覆盖新档、快照隔离�
   let calls = 0;
   const barrier = new Promise<void>((resolve) => { release = resolve; });
   const source = {
+    async prepareVersion() { return false; },
     async save(_slot: SaveSlotId, state: GameState) { if (++calls === 1) { await barrier; throw new Error('首写失败'); } writes.push(state.worldMinutes); },
     async load() { return null; }, async list() { return []; }, async rename() {}, async delete() {}, async hasAny() { return false; },
   } satisfies SaveRepository;
@@ -321,7 +322,7 @@ void test('S19 元数据异常不会冒充有效档，旧版本不迁移，预�
   envelope.savedAt = -1;
   storage.values.set(key('manual-1'), JSON.stringify(envelope));
   assert.equal((await repo.list())[1].exists, false);
-  storage.values.set(key('manual-2'), JSON.stringify({ ...state, version: 4 }));
+  storage.values.set(key('manual-2'), JSON.stringify({ format: 1, payload: JSON.stringify({ ...state, version: 4 }), label: '旧版本', savedAt: 1, backup: null }));
   assert.equal(await repo.load('manual-2'), null);
   await repo.save('auto', state);
   const preview = (await repo.list())[0] as unknown as Record<string, unknown>;

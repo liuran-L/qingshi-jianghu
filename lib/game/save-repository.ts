@@ -1,9 +1,10 @@
 import { snapshotSummary } from './session.ts';
-import { decodeSave, deleteBrowserSave, getBrowserSaveSlots, isSaveSlotId, loadFromBrowser, normalizeSaveLabel, renameBrowserSave, saveToBrowser } from './storage.ts';
+import { decodeSave, deleteBrowserSave, getBrowserSaveSlots, isSaveSlotId, loadFromBrowser, normalizeSaveLabel, prepareBrowserSaveVersion, renameBrowserSave, saveToBrowser } from './storage.ts';
 import type { SaveSlotId, SaveSlotSummary } from './storage.ts';
 import type { GameState } from './types.ts';
 
 export interface SaveRepository {
+  prepareVersion(): Promise<boolean>;
   save(slot: SaveSlotId, state: GameState, label?: string): Promise<void>;
   load(slot: SaveSlotId): Promise<GameState | null>;
   list(): Promise<SaveSlotSummary[]>;
@@ -13,6 +14,7 @@ export interface SaveRepository {
 }
 
 export class BrowserSaveRepository implements SaveRepository {
+  async prepareVersion() { return prepareBrowserSaveVersion(); }
   async save(slot: SaveSlotId, state: GameState, label?: string) { saveToBrowser(state, slot, label); }
   async load(slot: SaveSlotId) { return loadFromBrowser(slot); }
   async list() { return getBrowserSaveSlots(); }
@@ -29,6 +31,8 @@ export class TauriSaveRepository implements SaveRepository {
     const { invoke } = await import('@tauri-apps/api/core');
     return invoke<T>(command, args);
   }
+
+  async prepareVersion() { return this.invoke<boolean>('prepare_save_version', {}); }
 
   async save(slot: SaveSlotId, state: GameState, label?: string) {
     const payload = JSON.stringify(state);
@@ -88,6 +92,7 @@ export function serializeSaveRepository(source: SaveRepository): SaveRepository 
     return pending;
   };
   return {
+    prepareVersion: () => run(() => source.prepareVersion()),
     save: (slot, state, label) => {
       const snapshot = structuredClone(state);
       return run(() => source.save(slot, snapshot, label));

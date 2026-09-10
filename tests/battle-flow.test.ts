@@ -38,7 +38,7 @@ void test('B02 助阵严格检查在场、承诺、信任、敌意与战斗等�
  weak.player.health=100;
  const result=await click(weak,'journey-battle:riverfight:attack');
  assert.equal(result.battles.records.at(-1)!.win,false);assert.equal(result.player.injury,'重伤');assert.ok(result.battles.records.at(-1)!.lostEvidence.length);
- weak.player.health=1;const dead=await click(weak,'journey-battle:riverfight:attack');assert.equal(dead.campaign.ending,'dead');assert.match(dead.player.deathCause!,/战前已明示/);
+ weak.player.health=1;const dead=await click(weak,'journey-battle:riverfight:attack');assert.equal(dead.campaign.ending,'dead');assert.match(dead.player.deathCause!,/受创过重.*气血耗尽/);
 });
 
 void test('B03 伪造战前证据和参与者被拒绝，坏新档沿用自动备份恢复',async t=>{

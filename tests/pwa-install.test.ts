@@ -79,7 +79,7 @@ void test('P0-8 主屏入口未读到存档时先提示可能的存储隔离，�
   assert.match(standaloneStorageNotice(true, false)!, /浏览器里已有进度[\s\S]*存储分开[\s\S]*不要在这里新建/);
   assert.equal(standaloneStorageNotice(false, false), null);
   assert.equal(standaloneStorageNotice(true, true), null);
-  assert.equal(SAVE_KEY, 'qingshi-jianghu-save-v5:auto');
+  assert.equal(SAVE_KEY, 'qingshi-jianghu-save-v7:auto');
 });
 
 void test('主屏独立窗口隐藏添加入口', () => {

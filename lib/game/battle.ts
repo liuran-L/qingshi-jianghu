@@ -66,7 +66,7 @@ export function battleChoices(event:string):StoryChoice[] {
     :tactic==='retreat'?(win?'你翻过矮墙脱离县衙，身后的弦声仍在廊下震响。':'你挨了一记才越过矮墙。自己脱了身，书房与伤者却仍留在箭路里。')
     :tactic==='bargain'?'银两落进对方手中，他们让开一条窄路。你独自离开，书房与伤者仍在身后。'
     :win?'你们逼退伏击者，护着书房与门外伤者撤进内院。':'你带伤退出廊门，没能拦住射向书房的第二轮箭。'
-   :`${def.title}：${tactic==='surrender'?'你交械认拘，后续行动停止。':tactic==='retreat'?'你脱离现场，未把撤离自己写成救下所有人。':win?`你们完成了${def.goal}。`:'你负伤退走，没能完成现场目标。'}`;
+   :`${def.title}：${tactic==='surrender'?'你放下兵刃，任人收走武器；这场冲突到此转为拘押。':tactic==='retreat'?'你只顾自己脱离刀口，没有把离场写成救下旁人。':tactic==='bargain'?`银钱当面交清，对方只让你离开；${def.goal}仍留在身后。`:win?`${tactic==='guard'?'你守住退路，让身边的人先撤，终于':tactic==='environment'?'你借现场地势避开正面，终于':tactic==='proof'?'你把现有材料逐项摆明，终于':'你抢进对手空隙，终于'}${def.goal}。`:`你带伤退开，眼前的${def.goal}没能守住。`}`;
   const abandonsFirstActGoal=event==='assassin'&&['retreat','bargain','surrender'].includes(tactic);
   return {id:`battle-${tactic}-${win?'win':'loss'}`,label:'战斗结算记录',reply:firstActReply,effect:abandonsFirstActGoal?{dead:['gu-qinghe']}:tactic==='surrender'||tactic==='retreat'?{}:win?def.success:def.failure};
  }));
@@ -76,14 +76,14 @@ export function battleLabel(s:GameState,event:string,tactic:BattleTactic) {
  return `${tacticNames[tactic]}：力量 ${p.power}/${p.target} · ${p.win?'可成':'会失手'} · 损血 ${p.damage} · 耗气 ${p.qiCost}${p.cost?` · ${p.cost}两`:''}${p.damage>=s.player.health?' · 致命！':''}${!p.win?' · 可能失证、追查或同伴负伤':''}`;
 }
 
-const firstActTacticTitles:Record<BattleTactic,string>={
- attack:'抢先破开刀路', guard:'守住退路，先护身边的人', environment:'借廊柱与空隙突围',
+const tacticTitles:Record<BattleTactic,string>={
+ attack:'抢先压住对手', guard:'守住退路，先护身边的人', environment:'借现场地势绕开正面',
  retreat:'抽身离开', bargain:'付银换一条退路', proof:'当众举证，逼其让路', surrender:'放下兵刃',
 };
 const battleEvidenceNames:Record<string,string>={official:'县衙真档副本',transport:'漕运账副本',medicine:'药库出入记录',testament:'掌门遗嘱',witness:'幸存商旅证言'};
 const battleNpcNames:Record<string,string>={'gu-qinghe':'顾清河','shen-yanqiu':'沈砚秋'};
 
-/** 第一阶段冲突按钮的三层文案。只读取裁决预览，不改动存档。 */
+/** 全篇冲突按钮的三层文案。只读取裁决预览，不改动存档。 */
 export function battlePresentation(s:GameState,event:string,tactic:BattleTactic):BattlePresentation {
  const p=battlePreview(s,event,tactic), goal=battles[event].goal;
  const hint:Record<BattleTactic,string>={
@@ -109,5 +109,5 @@ export function battlePresentation(s:GameState,event:string,tactic:BattleTactic)
   if(!p.win&&failure.wanted) parts.push('失手会招来更多追查');
   if(!p.win&&failure.dead?.length) parts.push(`失手会使${failure.dead.map(id=>battleNpcNames[id]??'受护者').join('、')}遇害`);
  }
- return {title:firstActTacticTitles[tactic],hint:hint[tactic],details:parts.join(' · ')};
+ return {title:tacticTitles[tactic],hint:hint[tactic],details:parts.join(' · ')};
 }

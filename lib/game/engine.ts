@@ -45,7 +45,7 @@ export function createInitialGame(name: string): GameState {
   const firstNpc = getNpc('ma-sandao');
   const storyStartedAtMinutes = 3 * 24 * 60 + 17 * 60;
   return {
-    version: 6,
+    version: 7,
     dayOne: initialDayOne(),
     dayTwo: initialDayTwo(),
     economy: initialEconomy(),

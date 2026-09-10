@@ -1,10 +1,9 @@
-import { initialDayTwo } from './day-two.ts';
 import type { GameState } from './types.ts';
 
-/** 第六阶段字段可由完整旧档升级；出现半截结构则拒绝，交由仓库备份回退。 */
+/** v7 不迁移旧结构；缺字段或半截结构都拒绝。 */
 export function decodeDayTwo(state: GameState | null): GameState | null {
   if (!state) return null;
-  if (!Object.hasOwn(state, 'dayTwo')) return { ...state, dayTwo: initialDayTwo() };
+  if (!Object.hasOwn(state, 'dayTwo')) return null;
   const d = state.dayTwo;
   if (!d || typeof d !== 'object' || d.schema !== 1 || !['none', 'night-ferry'].includes(d.departurePlan) || !['none', 'offered'].includes(d.brokerContact)) return null;
   if (!['menu', 'gateEchoSeen', 'innEchoSeen', 'clinicEchoSeen', 'luEchoSeen'].every((key) => typeof d[key as keyof typeof d] === 'boolean')) return null;

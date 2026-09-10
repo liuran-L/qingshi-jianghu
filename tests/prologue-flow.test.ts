@@ -24,7 +24,7 @@ async function click(state: GameState, id: LimitedActionId, route?: string[]) {
 const available = (state: GameState, id: LimitedActionId) => getLimitedActions(state, state.selectedNpcId).some((a) => a.id === id);
 async function caseReady(identity: 'identify-memory' | 'identify-roster' = 'identify-memory', route?: string[]) {
   let state = createInitialGame('盐引测试客');
-  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) state = await click(state, id, route);
+  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) state = await click(state, id, route);
   state = movePlayer(state, 'clinic');
   state = await click(state, 'request-treatment', route);
   state = movePlayer(state, 'inn');
@@ -197,14 +197,10 @@ void test('P10 自动/20手动档保存主线中途与结局；备份回退后�
   assert.ok(data.has(AUTO_BACKUP_KEY));
 });
 
-void test('P11 v5及第三阶段真实v6旧档补默认，不清空关系；部分新增字段损坏拒绝', () => {
+void test('P11 v5/v6 旧档与缺失字段档一律拒绝，v7 伪造结局拒绝', () => {
   for (const file of ['v5-game.json', 'v6-before-prologue.json']) {
     const raw = readFileSync(new URL(`./fixtures/${file}`, import.meta.url), 'utf8');
-    const loaded = decodeSave(raw)!;
-    assert.ok(loaded);
-    assert.equal(loaded.prologueSchema, 1);
-    assert.equal(loaded.prologueEnding, null);
-    if (file.startsWith('v6')) assert.deepEqual(loaded.npcStates, JSON.parse(raw).npcStates);
+    assert.equal(decodeSave(raw), null);
   }
   const state = createInitialGame('坏字段');
   Reflect.deleteProperty(state, 'evidenceCustody');
@@ -279,10 +275,12 @@ void test('P17 已知计划不等于远程实时船讯；回县衙才收到抵�
   assert.ok(state.knownWorldEventIds.includes('ding17-ship-arrives'));
 });
 
-void test('P18 旧v6在离城之后读取不得重置货车；新档伪造未抵埠状态拒绝', () => {
-  const old = JSON.parse(readFileSync(new URL('./fixtures/v6-before-prologue.json', import.meta.url), 'utf8'));
-  old.worldMinutes = old.storyStartedAtMinutes + CARGO_DEPARTURE + 1;
-  const loaded = decodeSave(JSON.stringify(old))!;
+void test('P18 旧v6拒绝；v7 离城之后不得伪造未抵埠状态', () => {
+  assert.equal(decodeSave(readFileSync(new URL('./fixtures/v6-before-prologue.json', import.meta.url), 'utf8')), null);
+  const initial = createInitialGame('离城后档');
+  initial.player = { ...initial.player, injury: '无', woundUntreatedMinutes: 0, health: initial.player.maxHealth };
+  let loaded = initial;
+  while (loaded.worldMinutes < loaded.storyStartedAtMinutes + CARGO_DEPARTURE + 1) loaded = advanceGameTime(loaded, 720);
   assert.equal(loaded.day3CargoStatus, 'departed');
   loaded.day3CargoStatus = 'pending';
   assert.equal(decodeSave(encodeSave(loaded)), null);

@@ -16,7 +16,7 @@ async function click(state: GameState, id: LimitedActionId): Promise<GameState> 
 const has = (s: GameState, id: LimitedActionId) => getAvailableActions(s, s.selectedNpcId).some((a) => a.id === id);
 async function admitted() {
   let s = createInitialGame('拮据客');
-  for (const id of ['inspect-wound', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) s = await click(s, id);
+  for (const id of ['inspect-wound', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) s = await click(s, id);
   return s;
 }
 async function clinicLowMoney(money = 0) {

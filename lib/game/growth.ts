@@ -6,7 +6,7 @@ const emptyTree = () => ({ unlocked: false, unlockedAt: null, pointAwardedAt: nu
 export const initialGrowth = (): GrowthState => ({ schema: 1, menu: false, step: emptyTree(), medicine: emptyTree() });
 export const hasGrowthNode = (state: GameState, node: GrowthNodeId) => state.growth.step.nodes.includes(node) || state.growth.medicine.nodes.includes(node);
 
-const blocked = (state: GameState) => !state.player.alive || state.gatePhase === 'detained' || Boolean(state.prologueEnding);
+const blocked = (state: GameState) => !state.player.alive || state.gatePhase === 'detained' || Boolean(state.prologueEnding) || Boolean(state.campaign.activeEvent) || Boolean(state.campaign.finale) || Boolean(state.campaign.ending);
 const action = (id: LimitedActionId, label: string, input: string, mode: 'action' | 'speech' = 'action'): LimitedAction => ({ id, label, input, mode });
 const luEligible = (state: GameState) => state.locationId === 'inn' && state.selectedNpcId === 'lu-guanlan' && state.growth.step.unlocked && state.growth.step.pointAwardedAt === null && state.player.injury !== '重伤' && state.player.fatigue < 85 && state.npcStates['lu-guanlan'].suspicion < 3;
 const shenEligible = (state: GameState) => state.locationId === 'clinic' && state.selectedNpcId === 'shen-yanqiu' && state.growth.medicine.unlocked && state.growth.medicine.pointAwardedAt === null && state.player.fatigue < 90;

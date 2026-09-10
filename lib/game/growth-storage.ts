@@ -1,15 +1,9 @@
-import { initialGrowth } from './growth.ts';
 import type { GameState, GrowthNodeId } from './types.ts';
 
 const validNodes = new Set<GrowthNodeId>(['step-foundation', 'step-breath', 'medicine-diagnosis', 'medicine-bandage']);
 export function decodeGrowth(state: GameState | null): GameState | null {
   if (!state) return null;
-  if (!Object.hasOwn(state, 'growth')) {
-    const growth = initialGrowth();
-    if (state.dayOne.guidanceSeed && state.npcStates['lu-guanlan'].memory.evidence.includes('stance-observation')) growth.step.unlocked = true;
-    if (state.dayOne.interview !== 'none' && (state.dayOne.consent !== 'none' || state.economy.medicalWorkAt !== null || state.player.injury === '无')) growth.medicine.unlocked = true;
-    return { ...state, growth };
-  }
+  if (!Object.hasOwn(state, 'growth')) return null;
   const g = state.growth;
   if (!g || typeof g !== 'object' || g.schema !== 1 || typeof g.menu !== 'boolean') return null;
   for (const [tree, allowed] of [['step', ['step-foundation', 'step-breath']], ['medicine', ['medicine-diagnosis', 'medicine-bandage']]] as const) {

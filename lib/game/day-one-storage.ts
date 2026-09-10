@@ -1,17 +1,9 @@
-import { initialDayOne, dayOneTopicIds } from './day-one.ts';
 import type { GameState } from './types.ts';
 
-/** 仅完整缺失时兼容旧档；部分新字段损坏必须交给仓库回退。 */
+/** v7 不补旧默认；缺失或部分结构都交给仓库回退。 */
 export function decodeDayOne(state: GameState | null): GameState | null {
   if (!state) return null;
-  if (!Object.hasOwn(state, 'dayOne')) {
-    if (state.inventoryItemIds.includes('blood-cloth') || Object.values(state.npcStates).some(n => dayOneTopicIds.some(id => n.memory.topics[id]) || n.memory.evidence.includes('stance-observation'))) return null;
-    const d = initialDayOne();
-    const registration = state.lodgingRecords.at(-1);
-    if (registration) { d.registration = 'true'; d.registeredName = registration.registeredName; }
-    if (state.playerKnownFactIds.includes('doctor-wound-residue')) { d.interview = 'refused'; d.consent = 'exam'; d.cloth = 'doctor'; }
-    return { ...state, dayOne: d };
-  }
+  if (!Object.hasOwn(state, 'dayOne')) return null;
   const d = state.dayOne;
   if (!d || typeof d !== 'object' || d.schema !== 1) return null;
   const enums = { gatePosition: ['line', 'aside'], review: ['none', 'questioning', 'answered', 'disputed', 'cleared'], registration: ['none', 'true', 'alias', 'refused'], interview: ['none', 'truth', 'lie', 'refused'], consent: ['none', 'exam', 'basic', 'refused'], cloth: ['undecided', 'retain', 'keep', 'player', 'doctor'] };

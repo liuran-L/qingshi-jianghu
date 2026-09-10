@@ -1,6 +1,6 @@
 import { artSpent } from './arts.ts';
 import type { GameState } from './types.ts';
-import { initialCampaign, lifeRoutes, dayAt, campaignDay } from './campaign.ts';
+import { lifeRoutes, dayAt, campaignDay } from './campaign.ts';
 import { coreNames, evidenceNames, firstActPreludes, storyEvents } from './campaign-content.ts';
 
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -9,10 +9,10 @@ const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => 
 const finalFlags = ['xia-victory', 'xia-defeat', 'xia-escort', 'public-truth', 'trade-public', 'trade-monopoly', 'shadow-public', 'shadow-rich', 'partial-trial', 'office-compromise', 'healer-clinic', 'healer-travel'];
 const flags = new Set([...storyEvents.flatMap(e => [...e.choices.flatMap(c => c.effect.flags ?? []), ...(e.missed.effect.flags ?? [])]), ...firstActPreludes.flatMap(item => item.flags ?? []), ...finalFlags]);
 
-/** 旧档完整缺字段才迁移。读取只校验快照，绝不推进或重播世界。 */
+/** v7 只校验当前快照，绝不补字段、推进或重播世界。 */
 export function decodeCampaign(s: GameState | null): GameState | null {
   if (!s) return null;
-  if (!Object.hasOwn(s, 'campaign')) return { ...s, campaign: initialCampaign() };
+  if (!Object.hasOwn(s, 'campaign')) return null;
   const c = s.campaign;
   if (!record(c) || c.schema !== 1) return null;
   if (!record(c.extraLessons) || Object.keys(c.extraLessons).length !== 2 || ![0, 1].includes(c.extraLessons.step) || ![0, 1].includes(c.extraLessons.medicine)) return null;

@@ -109,8 +109,6 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
     }
 
     const choices: LimitedAction[] = [];
-    if (!state.knownLocationIds.includes('inn')) choices.push(action('ask-lodging', '询问哪里可以落脚', '城里可有能投宿歇脚的地方？', 'speech'));
-    if (state.player.injury !== '无' && !state.knownLocationIds.includes('clinic')) choices.push(action('ask-clinic', '询问哪里可以治伤', '城中哪里可以找大夫看伤？', 'speech'));
     if (!state.gateAccess) {
       if (state.knownClueIds.includes('attack-phrase') && !state.playerKnownFactIds.includes('ma-ding17-reaction')) choices.push(action('mention-ding17', '提起“丁字十七”', '你可曾听过“丁字十七”这几个字？', 'speech'));
       if (state.player.hasRoadPass || state.inventoryItemIds.includes('temporary-stay-permit')) choices.push(action('present-gate-document', '出示已有路引或临时凭据', '这是我现有的路引或官府凭据，请按文书核验。', 'action'));
@@ -118,6 +116,9 @@ function buildLimitedActions(state: GameState, npcId: string | null): LimitedAct
       if (gateEntryBasis(state)) choices.push(action('request-entry', '请按无路引规矩登记候验', '来由与现有物件都已说明，请按无路引行旅的规矩登记候验。', 'speech'));
       choices.push(action('challenge-search', '要求写明搜查依据', '若要搜查，请按规矩写明依据、经手人和所扣物件。', 'speech'));
       if (state.playerKnownFactIds.includes('ma-private-bribe-signal') && state.player.money >= 2) choices.push(action('offer-bribe', '递出二两，请他这次不细查', '方才的暗示我明白。这二两银子，请照说好的通融。', 'speech'));
+    } else {
+      if (!state.knownLocationIds.includes('inn')) choices.push(action('ask-lodging', '获准进城后询问落脚处', '我已经登记放行。城里可有能投宿歇脚的地方？', 'speech'));
+      if (state.player.injury !== '无' && !state.knownLocationIds.includes('clinic')) choices.push(action('ask-clinic', '获准进城后询问医馆', '我已经登记放行。城中哪里可以找大夫看伤？', 'speech'));
     }
     if (!state.knownClueIds.includes('abnormal-wound')) choices.push(action('inspect-wound', '检查左肋伤口', '我低头仔细检查左肋的伤口。', 'action'));
     if (!state.knownClueIds.includes('ding17-fragment')) choices.push(action('inspect-bag', '检查湿透的行囊', '我仔细检查湿透的行囊和被割开的夹层。', 'action'));

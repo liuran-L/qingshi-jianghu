@@ -3,7 +3,7 @@ import { decodeArts } from './arts-storage.ts';
 import { snapshotSummary } from './session.ts';
 import { clues, inventoryItems, knownFacts, locations, npcs, worldEvents } from './world.ts';
 import type { GameState, LocationId } from './types.ts';
-import { upgradeV5, validNpcMemory } from './npc-memory-storage.ts';
+import { validNpcMemory } from './npc-memory-storage.ts';
 import { decodePrologue } from './prologue-storage.ts';
 import { decodeDayOne } from './day-one-storage.ts';
 import { decodeDayTwo } from './day-two-storage.ts';
@@ -34,11 +34,13 @@ interface BrowserSaveMeta { label: string; savedAt: number }
 export interface SaveRecord extends BrowserSaveMeta { payload: string }
 interface SaveEnvelope extends SaveRecord { format: 1; backup: SaveRecord | null }
 
-const SAVE_PREFIX = 'qingshi-jianghu-save-v5';
+export const SAVE_PREFIX = 'qingshi-jianghu-save-v7';
+export const LEGACY_SAVE_PREFIX = 'qingshi-jianghu-save-v5';
+export const SAVE_RESET_MESSAGE = '剧情规则已更新，旧存档已失效，请重新开局。';
+const RESET_MARKER_KEY = `${SAVE_PREFIX}:legacy-reset-complete`;
 export const SAVE_KEY = `${SAVE_PREFIX}:auto`;
 export const AUTO_BACKUP_KEY = `${SAVE_PREFIX}:auto-backup`;
 const slotKey = (slot: SaveSlotId) => `${SAVE_PREFIX}:${slot}`;
-const metaKey = (slot: SaveSlotId) => `${SAVE_PREFIX}:${slot}:meta`;
 export const manualSaveSlotIds = Array.from({ length: MANUAL_SAVE_LIMIT }, (_, index) => `manual-${index + 1}` as ManualSaveSlotId);
 export const allSaveSlotIds: SaveSlotId[] = ['auto', ...manualSaveSlotIds];
 export const isSaveSlotId = (value: string): value is SaveSlotId => value === 'auto' || /^manual-(?:[1-9]|1\d|20)$/.test(value);
@@ -68,7 +70,7 @@ export function decodeSave(raw: string): GameState | null {
     const value = JSON.parse(raw) as Record<string, unknown>;
     const player = value.player;
     if (
-      ![5, 6].includes(value.version as number) || value.started !== true || !isRecord(player) ||
+      value.version !== 7 || value.started !== true || !isRecord(player) ||
       !isString(player.name) || !hasNumericAbilities(player.abilities) ||
       !['health', 'maxHealth', 'qi', 'maxQi', 'fatigue', 'maxFatigue', 'woundUntreatedMinutes', 'money', 'reputation', 'chivalry', 'infamy'].every((key) => isNumber(player[key])) ||
       !injuries.has(player.injury as string) || !poisons.has(player.poison as string) ||
@@ -107,7 +109,7 @@ export function decodeSave(raw: string): GameState | null {
         !isRecord(runtime) || !['attitude', 'suspicion', 'hostility'].every((key) => isNumber(runtime[key])) ||
         !['informedRiverGang', 'searchedPlayer', 'detainedPlayer'].every((key) => typeof runtime[key] === 'boolean') ||
         !isRecord(runtime.claimBeliefs) || !Object.values(runtime.claimBeliefs).every(isNumber) ||
-        (value.version === 6 && !validNpcMemory(runtime, value.worldMinutes))) return null;
+        !validNpcMemory(runtime, value.worldMinutes)) return null;
     }
     if (!Object.entries(value.conversationTurns).every(([id, count]) => validNpcIds.has(id) && isNumber(count) && Number.isInteger(count) && count >= 0) ||
       !Object.entries(value.worldEventOutcomes).every(([id, outcome]) => validEventIds.has(id) && isString(outcome)) ||
@@ -116,20 +118,11 @@ export function decodeSave(raw: string): GameState | null {
       Object.values(numeric.abilities).some((ability) => ability < 0) ||
       (value.selectedNpcId !== null && !locations.find((location) => location.id === value.locationId)!.npcIds.includes(value.selectedNpcId as string) && !(value.locationId === 'gate' && value.selectedNpcId === 'ning-buping' && isRecord(value.dayOne) && ['questioning', 'answered', 'disputed'].includes(value.dayOne.review as string))) ||
       numeric.alive !== (numeric.health > 0) || (numeric.alive ? numeric.deathCause !== null : !numeric.deathCause)) return null;
-    return decodeBattles(decodeArts(decodeCampaign(decodeGrowth(decodeEconomy(decodeDayTwo(decodeDayOne(decodePrologue(value.version === 5 ? upgradeV5(value) : value as unknown as GameState))))))));
+    return decodeBattles(decodeArts(decodeCampaign(decodeGrowth(decodeEconomy(decodeDayTwo(decodeDayOne(decodePrologue(value as unknown as GameState))))))));
   } catch {
     return null;
   }
 }
-
-const readMeta = (slot: SaveSlotId): BrowserSaveMeta | null => {
-  const raw = localStorage.getItem(metaKey(slot));
-  if (!raw) return null;
-  try {
-    const value = JSON.parse(raw) as Partial<BrowserSaveMeta>;
-    return isString(value.label) && isNumber(value.savedAt) ? { label: value.label, savedAt: value.savedAt } : null;
-  } catch { return null; }
-};
 
 export function saveToBrowser(state: GameState, slot: SaveSlotId = 'auto', label?: string): void {
   if (!isSaveSlotId(slot)) throw new Error('非法存档位');
@@ -156,19 +149,29 @@ export function decodeSaveRecord(raw: string | null): SaveRecord | null {
 
 function readBrowserSlot(slot: SaveSlotId) {
   const raw = localStorage.getItem(slotKey(slot));
-  let record = decodeSaveRecord(raw);
+  const record = decodeSaveRecord(raw);
   let backup: SaveRecord | null = null;
   if (raw) {
     try { backup = decodeSaveRecord(JSON.stringify(JSON.parse(raw).backup)); } catch { /* 非 JSON */ }
-    // 保留 v5 存储键和旧封装；v5 内容只在内存升级，不迁移 v1-v4。
-    if (!record && decodeSave(raw)) record = { payload: raw, label: readMeta(slot)?.label ?? defaultSaveLabel(slot), savedAt: readMeta(slot)?.savedAt ?? 0 };
   }
   if (slot === 'auto' && !backup) {
     const legacy = localStorage.getItem(AUTO_BACKUP_KEY);
     backup = decodeSaveRecord(legacy);
-    if (!backup && legacy && decodeSave(legacy)) backup = { payload: legacy, label: '自动存档', savedAt: 0 };
   }
   return { record, backup, occupied: raw !== null };
+}
+
+/** 首次运行 v7 时一次性清除 v5 全部档位；标记写入后不再重复执行。 */
+export function prepareBrowserSaveVersion(): boolean {
+  if (localStorage.getItem(RESET_MARKER_KEY) === '1') return false;
+  const oldKeys: string[] = [];
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (key && (key === LEGACY_SAVE_PREFIX || key.startsWith(`${LEGACY_SAVE_PREFIX}:`))) oldKeys.push(key);
+  }
+  for (const key of oldKeys) localStorage.removeItem(key);
+  localStorage.setItem(RESET_MARKER_KEY, '1');
+  return true;
 }
 
 export function loadFromBrowser(slot: SaveSlotId = 'auto'): GameState | null {

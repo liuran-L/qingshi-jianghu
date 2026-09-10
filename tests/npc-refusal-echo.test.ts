@@ -6,7 +6,7 @@ import {getAvailableActions} from '../lib/game/limited-actions.ts';
 import {encodeSave,decodeSave} from '../lib/game/storage.ts';
 void test('A06 拒绝住宿登记不留下姓名，次日掌柜回声与医馆知识隔离',async()=>{
  let s=createInitialGame('过客');
- for(const id of ['tell-attack','ask-lodging','ask-clinic','request-entry'] as const)s=await click(s,id);
+ for(const id of ['tell-attack','request-entry','ask-lodging','ask-clinic'] as const)s=await click(s,id);
  s=movePlayer(s,'inn');s=await click(s,'open-dayone');s=await click(s,'register-refuse');
  assert.equal(s.lodgingRecords.length,0);assert.equal(s.dayOne.registeredName,null);
  assert.ok(!getAvailableActions(s,s.selectedNpcId).some(a=>a.id==='rest-night'));

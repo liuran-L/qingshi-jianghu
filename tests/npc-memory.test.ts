@@ -7,7 +7,7 @@ import { createActionRunner, latestDialogueIndex } from '../lib/game/flow-contro
 import { getLimitedActions } from '../lib/game/limited-actions.ts';
 import { mockAIService } from '../lib/ai/mock-service.ts';
 import { changeNpcRelationship, getTopicStatus, recordNpcStatement, showNpcEvidence, verifyNpcStatement } from '../lib/game/npc-memory.ts';
-import { AUTO_BACKUP_KEY, SAVE_KEY, decodeSave, encodeSave, manualSaveSlotIds } from '../lib/game/storage.ts';
+import { LEGACY_SAVE_PREFIX, SAVE_KEY, SAVE_RESET_MESSAGE, decodeSave, encodeSave, manualSaveSlotIds } from '../lib/game/storage.ts';
 import { BrowserSaveRepository, TauriSaveRepository, type SaveInvoke } from '../lib/game/save-repository.ts';
 import type { GameState, LimitedActionId } from '../lib/game/types.ts';
 
@@ -23,14 +23,14 @@ async function click(state: GameState, id: LimitedActionId) {
 }
 async function enter(location: 'inn' | 'clinic') {
   let state = await click(createInitialGame('记忆测试客'), 'tell-attack');
-  for (const id of ['ask-lodging', 'ask-clinic', 'request-entry'] as const) state = await click(state, id);
+  for (const id of ['request-entry', 'ask-lodging', 'ask-clinic'] as const) state = await click(state, id);
   return movePlayer(state, location);
 }
 const available = (state: GameState, id: LimitedActionId) => getLimitedActions(state, state.selectedNpcId).some((a) => a.id === id);
 function storageSetup(t: { after: (fn: () => void) => void }) {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
   const data = new Map<string, string>();
-  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => data.set(key, value), removeItem: (key: string) => data.delete(key) } });
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { get length() { return data.size; }, key: (index: number) => [...data.keys()][index] ?? null, getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => data.set(key, value), removeItem: (key: string) => data.delete(key) } });
   t.after(() => { if (previous) Object.defineProperty(globalThis, 'localStorage', previous); else Reflect.deleteProperty(globalThis, 'localStorage'); });
   return { data, repo: new BrowserSaveRepository() };
 }
@@ -165,33 +165,21 @@ void test('N09 已证伪口供持久化且惩罚去重；未实际展示证据�
   assert.ok(!('npcStates' in createInteractionView(state, 'ma-sandao')));
 });
 
-void test('N10 真正v5夹具：自动档和20手动档只读升级，不改原档/标签/旧数值与口供', async (t) => {
+void test('N10 首次运行 v7 清除 v5 自动档、备份与20个手动档，且只执行一次', async (t) => {
   const { data, repo } = storageSetup(t);
-  const old = JSON.parse(oldRaw);
-  old.npcStates['ma-sandao'].suspicion = 7;
-  old.npcStates['ma-sandao'].claimBeliefs = { old: 1 };
-  old.playerClaims.push({ id: 'old', text: '旧口供', toldNpcId: 'ma-sandao', atMinutes: old.worldMinutes });
-  old.npcKnowledge['su-wantang'].learnedFacts.push('对方已婉拒透露姓名');
-  const raw = JSON.stringify(old);
-  for (const slot of ['auto', ...manualSaveSlotIds] as const) data.set(`qingshi-jianghu-save-v5:${slot}`, JSON.stringify({ format: 1, payload: raw, label: `旧档${slot}`, savedAt: 100, backup: null }));
-  const snapshot = new Map(data);
-  for (const slot of ['auto', ...manualSaveSlotIds] as const) {
-    const loaded = (await repo.load(slot))!;
-    assert.equal(loaded.version, 6);
-    assert.equal(loaded.npcStates['ma-sandao'].suspicion, 7);
-    assert.deepEqual(loaded.playerClaims, old.playerClaims);
-    assert.equal(loaded.npcStates['su-wantang'].memory.topics['ask-name']?.status, 'refused');
-    assert.equal(loaded.npcStates['ma-sandao'].trust, 0);
-  }
-  assert.equal((await repo.list()).filter((s) => s.exists).length, 21);
-  assert.deepEqual(data, snapshot);
-  const continued = await click((await repo.load('manual-20'))!, 'tell-attack');
-  await repo.save('auto', continued);
-  assert.deepEqual(await repo.load('auto'), continued);
-  assert.equal(data.get('qingshi-jianghu-save-v5:manual-20'), snapshot.get('qingshi-jianghu-save-v5:manual-20'));
+  for (const slot of ['auto', ...manualSaveSlotIds] as const) data.set(`${LEGACY_SAVE_PREFIX}:${slot}`, oldRaw);
+  data.set(`${LEGACY_SAVE_PREFIX}:auto-backup`, oldRaw);
+  data.set(`${LEGACY_SAVE_PREFIX}:manual-20:meta`, '{"label":"旧档","savedAt":100}');
+  data.set('别的应用:保留', '1');
+  assert.equal(decodeSave(oldRaw), null);
+  assert.equal(await repo.prepareVersion(), true);
+  assert.equal([...data.keys()].some(key => key === LEGACY_SAVE_PREFIX || key.startsWith(`${LEGACY_SAVE_PREFIX}:`)), false);
+  assert.equal(data.get('别的应用:保留'), '1');
+  assert.equal(await repo.prepareVersion(), false);
+  assert.equal(SAVE_RESET_MESSAGE, '剧情规则已更新，旧存档已失效，请重新开局。');
 });
 
-void test('N11 v6损坏不静默清空记忆；自动回退v5备份后可继续保存', async (t) => {
+void test('N11 v7 损坏不静默清空记忆；自动回退当前版本备份后可继续保存', async (t) => {
   const { data, repo } = storageSetup(t);
   const bad = createInitialGame('坏档');
   for (const mutate of [
@@ -199,11 +187,13 @@ void test('N11 v6损坏不静默清空记忆；自动回退v5备份后可继续�
     (s: GameState) => { s.npcStates['ma-sandao'].trust = Infinity; },
     (s: GameState) => { s.npcStates['ma-sandao'].memory.topics['ask-name'] = { status: 'locked', day: 3, atMinutes: 5340, attempts: -1, respected: false, evidence: [] }; },
   ]) { const copy = structuredClone(bad); mutate(copy); assert.equal(decodeSave(encodeSave(copy)), null); }
-  Reflect.deleteProperty(bad.npcStates['ma-sandao'], 'memory');
-  data.set(SAVE_KEY, encodeSave(bad));
-  data.set(AUTO_BACKUP_KEY, oldRaw);
+  await repo.save('auto', bad);
+  const newer = advanceGameTime(bad, 1);
+  await repo.save('auto', newer);
+  data.set(SAVE_KEY, '{');
   const loaded = (await repo.load('auto'))!;
-  assert.equal(loaded.version, 6);
+  assert.deepEqual(loaded, bad);
+  assert.equal(loaded.version, 7);
   assert.equal((await repo.list())[0].recovered, true);
   await repo.save('auto', await click(loaded, 'tell-attack'));
   assert.equal((await repo.list())[0].recovered, false);
@@ -224,24 +214,29 @@ void test('N12 四人复杂记忆自动/手动档往返完全一致，读档继�
   assert.deepEqual(await repo.load('auto'), continued);
 });
 
-void test('N13 Tauri命令桥接v5只读升级，坏主档回退v5；不冒充原生SQLite运行', async () => {
-  let raw = oldRaw;
+void test('N13 Tauri 命令桥接执行一次版本准备，v7 坏主档回退当前备份', async () => {
+  const current = createInitialGame('桌面档');
+  let raw = encodeSave(current);
+  let prepared = false;
   const commands: string[] = [];
   const invoke: SaveInvoke = async <T>(command: string, args: Record<string, unknown>) => {
     commands.push(command);
+    if (command === 'prepare_save_version') { const result = !prepared; prepared = true; return result as T; }
     if (command === 'load_game') return raw as T;
-    if (command === 'load_backup') return { payload: oldRaw, savedAt: 100 } as T;
+    if (command === 'load_backup') return { payload: encodeSave(current), savedAt: 100 } as T;
     if (command === 'save_game') { raw = args.payload as string; return undefined as T; }
     throw new Error(command);
   };
   const repo = new TauriSaveRepository(invoke);
+  assert.equal(await repo.prepareVersion(), true);
+  assert.equal(await repo.prepareVersion(), false);
   const loaded = (await repo.load('auto'))!;
-  assert.equal(loaded.version, 6);
-  assert.deepEqual(commands, ['load_game']);
+  assert.equal(loaded.version, 7);
   raw = '{';
   assert.deepEqual(await repo.load('auto'), loaded);
   await repo.save('auto', loaded);
   assert.deepEqual(await repo.load('auto'), loaded);
+  assert.deepEqual(commands.slice(0, 3), ['prepare_save_version', 'prepare_save_version', 'load_game']);
 });
 
 void test('N14 姓名重开必须同时满足跨日、尊重、信任且没有高戒心/敌意', async () => {

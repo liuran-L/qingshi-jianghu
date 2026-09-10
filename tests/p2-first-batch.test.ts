@@ -187,25 +187,23 @@ void test('P2-07 见闻札记只分亲见、他人说法和疑问，不显示幕
   for (const event of storyEvents) assert.ok(!text.includes(event.opening.join('')));
 });
 
-void test('P2-08 GameState v6 与现有键不变：布置可存读，旧结果、伪造与重复均被拒绝', async () => {
-  const v5 = decodeSave(readFileSync(new URL('./fixtures/v5-game.json', import.meta.url), 'utf8'))!;
-  assert.equal(v5.version, 6);
-  assert.ok(!v5.playerKnownFactIds.some(id => ['dock-salt-movement','day2-public-notice','act-one-surface-conflict'].includes(id)));
-  const v6 = createInitialGame('旧档客');
-  assert.deepEqual(decodeSave(encodeSave(v6)), v6);
-  assert.equal(v6.worldMinutes, decodeSave(encodeSave(v6))!.worldMinutes);
+void test('P2-08 GameState v7 严格读取：布置可存读，旧结果、伪造与重复均被拒绝', async () => {
+  assert.equal(decodeSave(readFileSync(new URL('./fixtures/v5-game.json', import.meta.url), 'utf8')), null);
+  const v7 = createInitialGame('当前档客');
+  assert.deepEqual(decodeSave(encodeSave(v7)), v7);
+  assert.equal(v7.worldMinutes, decodeSave(encodeSave(v7))!.worldMinutes);
 
   const prepared = await click(await reachFirePrelude(), 'journey-scout:fire');
   const loaded = decodeSave(encodeSave(prepared))!;
   assert.ok(loaded.campaign.flags.includes('firebreak-ready'));
   assert.equal(loaded.campaign.journal.filter(entry => entry.action === 'scout:fire').length, 1);
   assert.equal(applyCampaignAction(loaded, 'journey-scout:fire'), loaded);
-  const forged = structuredClone(v6); forged.campaign.flags.push('firebreak-ready');
+  const forged = structuredClone(v7); forged.campaign.flags.push('firebreak-ready');
   assert.equal(decodeSave(encodeSave(forged)), null);
 
   const legacy = structuredClone(prepared);
   legacy.campaign.resolved.fire = { choice: 'missed', at: legacy.worldMinutes, text: '码头账房焚毁，账房未能逃出。脚夫说原账烧了，别处是否有副本无人肯说。', witnessed: true };
   assert.equal(decodeSave(encodeSave(legacy)), null);
-  assert.equal(SAVE_KEY, 'qingshi-jianghu-save-v5:auto');
-  assert.equal(firstActPreludes.length, 5);
+  assert.equal(SAVE_KEY, 'qingshi-jianghu-save-v7:auto');
+  assert.equal(firstActPreludes.length, 19);
 });

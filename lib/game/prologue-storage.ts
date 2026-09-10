@@ -1,15 +1,9 @@
 import type { GameState } from './types.ts';
-import { initialPrologue, advanceCargo, CARGO_ARRIVAL, CARGO_DEPARTURE, prologueFields } from './prologue.ts';
+import { CARGO_ARRIVAL, CARGO_DEPARTURE, prologueFields } from './prologue.ts';
 
-/** v6 增量结构号为1；仅完整缺少本阶段字段的旧档可补默认，部分缺失视为坏档。 */
+/** v7 只接受字段齐全且自洽的当前结构。 */
 export function decodePrologue(state: GameState): GameState | null {
-  if (!prologueFields.some((key) => Object.hasOwn(state, key))) {
-    const next = { ...state, ...initialPrologue() };
-    next.poisonWoundLinked = state.playerKnownFactIds.includes('corpse-wound-link');
-    next.evidenceCustody.fragment = state.inventoryItemIds.includes('ding17-fragment') ? 'player' : state.npcStates['ma-sandao'].detainedPlayer ? 'ma' : 'unknown';
-    next.evidenceCustody.medical = state.playerKnownFactIds.includes('doctor-wound-residue') ? 'shen' : 'unknown';
-    return advanceCargo(next);
-  }
+  if (!prologueFields.every((key) => Object.hasOwn(state, key))) return null;
   if (state.prologueSchema !== 1 || !['chengShouyiIdentified', 'poisonWoundLinked', 'cartMarkObserved'].every((key) => typeof state[key as keyof GameState] === 'boolean')) return null;
   const custody = state.evidenceCustody;
   const c = state.saltCase;

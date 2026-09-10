@@ -247,7 +247,7 @@ export interface GameState {
   campaign: CampaignState;
   arts: ArtsState;
   battles: BattleState;
-  version: 6;
+  version: 7;
   dayOne: DayOneState;
   dayTwo: DayTwoState;
   economy: EconomyState;

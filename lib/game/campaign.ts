@@ -1,4 +1,4 @@
-import { battles, battleContext, battleEnabled, battlePreview, battleLabel, battlePresentation, judgeBattle, tacticNames, type BattleTactic } from './battle.ts';
+import { battles, battleContext, battleEnabled, battlePreview, battlePresentation, judgeBattle, tacticNames, type BattleTactic } from './battle.ts';
 import { artActions, settleArtAction, hasArt, artTrainingBlock } from './arts.ts';
 import { totalArtPoints } from './arts-content.ts';
 import type { GameState, LimitedActionId, DialogueLine } from './types.ts';
@@ -38,10 +38,29 @@ const action = (id: string, label: string, disabledReason?: string, hint?: strin
   id: `journey-${id}`, label, input: label, mode: 'action',
   ...(disabledReason ? { disabledReason } : {}), ...(hint ? { hint } : {}), ...(details ? { details } : {}),
 });
-const firstActAttendLabels:Record<string,string>={
+const eventAttendLabels:Record<string,string>={
   temple:'去城外破庙，看看药渣与脚印', assassin:'应县衙告示，进廊作证', inheritance:'回客栈看青岳门讣帖',
   fire:'赶去码头木账房', identity:'到城门复核姓名',
+  survivor:'循赎人条去码头后仓', sister:'回客栈看苏晚棠递来的契纸', roads:'到城门查看新开的外路',
+  pharmacy:'去回春堂核对断供药签', assembly:'赴山脚祠堂参加公议', riverfight:'循船户示警赶到盐河',
+  hearing:'持现有材料到县衙听审', olddebt:'回半闭店门的客栈查看盯梢', hunt:'赶去回春堂转移病人与病案',
+  ship:'循呼救与异味赶到封锁河湾', order:'到粮仓核看仓数与领粮簿', threeledgers:'按缺账清单到候事廊核卷',
+  lastprice:'带着报价信到县衙核清交割', witnessnight:'回客栈查看证人收到的威胁信',
 };
+function storyChoiceHint(choice: StoryChoice): string {
+  if (choice.hint) return choice.hint;
+  const parts: string[] = [];
+  if ((choice.need?.money ?? 0) > 0) parts.push(`当场付出${choice.need!.money}两`);
+  if (choice.need?.evidence) parts.push(`须实际持有${evidenceNames[choice.need.evidence] ?? '相应材料'}`);
+  if (choice.effect.evidence?.length) parts.push(`争取留下${choice.effect.evidence.map(id => evidenceNames[id] ?? '可核材料').join('、')}`);
+  if (choice.effect.dead?.length) parts.push('被放弃的人可能无法活着离开');
+  if (choice.effect.help) parts.push(`优先照应${coreNames[choice.effect.help] ?? '眼前的人'}`);
+  if (choice.effect.harm) parts.push(`会损及与${coreNames[choice.effect.harm] ?? '对方'}的关系`);
+  if ((choice.effect.wanted ?? 0) > 0) parts.push('会留下可供追查的痕迹');
+  if ((choice.effect.wanted ?? 0) < 0) parts.push('争取减轻已经存在的追查');
+  if (!parts.length) parts.push(`只处理“${choice.label}”涉及的眼前目标，未取得的材料与未到场的人不会随之补齐`);
+  return `${parts.join('；')}。`;
+}
 const stamp = (s: GameState, id: string, text: string, money = 0, debt = 0) => {
   s.campaign.journal.push({ at: s.worldMinutes, action: id, money, debt, text });
   s.logs = [...s.logs, { id: `journey-log:${s.worldMinutes}:${s.logs.length}`, atMinutes: s.worldMinutes, type: 'system', text }];
@@ -104,7 +123,7 @@ export function upcomingEvent(s: GameState): StoryEvent | undefined {
 }
 export function canChooseStory(s: GameState, choice: StoryChoice): boolean {
   const n = choice.need;
-  return !n || ((!n.ally || s.campaign.npcAlive[n.ally] && s.npcStates[n.ally].trust >= 4 && s.npcStates[n.ally].hostility < 3) && (!n.node || hasArt(s, n.node)) && s.player.money >= (n.money ?? 0) && (!n.flag || has(s, n.flag)) && (!n.evidence || s.campaign.evidence.includes(n.evidence)) && (!n.route || s.campaign.scores[n.route] >= (n.score ?? 1)));
+  return !n || ((!n.ally || s.campaign.npcAlive[n.ally] && s.npcStates[n.ally].trust >= 4 && s.npcStates[n.ally].hostility < 3) && (!n.node || hasArt(s, n.node)) && s.player.money >= (n.money ?? 0) && s.campaign.wanted >= (n.wanted ?? 0) && (!n.flag || has(s, n.flag)) && (!n.evidence || s.campaign.evidence.includes(n.evidence)) && (!n.route || s.campaign.scores[n.route] >= (n.score ?? 1)));
 }
 const mainProof = (s: GameState) => ['official', 'transport', 'medicine'].every(id => s.campaign.evidence.includes(id));
 export function routeQualification(s: GameState, route: LifeRoute): string | null {
@@ -132,10 +151,9 @@ export function campaignActions(s: GameState): LimitedAction[] {
   if (c.activeEvent) {
     const event = storyEvents.find(e => e.id === c.activeEvent)!;
     const battleActions = battles[event.id] ? (Object.keys(tacticNames) as BattleTactic[]).filter(t=>battleEnabled(s,event.id,t)).map(t=>{
-      if(event.day<=8){const view=battlePresentation(s,event.id,t);return action(`battle:${event.id}:${t}`,view.title,undefined,view.hint,view.details);}
-      return action(`battle:${event.id}:${t}`,battleLabel(s,event.id,t));
+      const view=battlePresentation(s,event.id,t);return action(`battle:${event.id}:${t}`,view.title,undefined,view.hint,view.details);
     }) : [];
-    return [...battleActions, ...event.choices.filter(choice => !choice.id.startsWith('battle-') && canChooseStory(s, choice)).map(choice => action(`choose:${event.id}:${choice.id}`, choice.label, undefined, event.day<=8 ? choice.hint : undefined)), action(`leave:${event.id}`, event.day<=8?'离开现场':'暂离现场，承担缺席后果', undefined, event.day<=8?'你一走，本次现场不会等你。':undefined)];
+    return [...battleActions, ...event.choices.filter(choice => !choice.id.startsWith('battle-') && canChooseStory(s, choice)).map(choice => action(`choose:${event.id}:${choice.id}`, choice.label, undefined, storyChoiceHint(choice))), action(`leave:${event.id}`, '离开现场', undefined, '你一走，本次现场不会等你；只按缺席结果留下痕迹。')];
   }
   if (c.finale) return finaleActions(s);
   const options: LimitedAction[] = [...artActions(s)];
@@ -148,7 +166,7 @@ export function campaignActions(s: GameState): LimitedAction[] {
     const reason = tooLate ? '距事件窗口太近，已来不及完成这次布置。' : s.player.money < prelude.money ? `需${prelude.money}两，当前只有${s.player.money}两。` : undefined;
     options.push(action(`scout:${event.id}`, prelude.label, reason, prelude.hint));
   }
-  if (event && s.worldMinutes >= dayAt(s, event.day)) options.push(action(`attend:${event.id}`, event.day<=8 ? firstActAttendLabels[event.id] : `前往 · ${event.title}（往返与交涉另计时）`));
+  if (event && s.worldMinutes >= dayAt(s, event.day)) options.push(action(`attend:${event.id}`, eventAttendLabels[event.id] ?? `循消息赶到${event.title}现场`));
   if (s.worldMinutes >= dayAt(s, 58)) {
     for (const route of lifeRoutes) if (!routeQualification(s, route)) options.push(action(`finale:${route}`, `为此生作结 · ${routeNames[route]}`));
     options.push(action('retire', '留在城中退隐，接受尚未解决的旧事'));
@@ -466,7 +484,10 @@ function finaleActions(s: GameState): LimitedAction[] {
   const c = s.campaign;
   const route = c.finale!;
   if (c.finaleStep === 0) {
-    if (route === 'xia') { const p = conflictPreview(s); return [...(['guard','environment','retreat','bargain'] as BattleTactic[]).filter(t=>battleEnabled(s,'finale',t)).map(t=>action(`battle:finale:${t}`,battleLabel(s,'finale',t))), action('end:xia:fight', `合力破阵：力量${p.power} / 对阵${p.target}，${p.win ? '可胜' : '会败'}，损血${p.damage}${p.damage >= s.player.health ? '（致命）' : ''}`), ...(mainProof(s) ? [action('end:xia:proof', '当众对三账，拆散同盟，不与高手单斗')] : []), action('end:xia:escort', '放弃追凶，护送证人出围（花六两；不足记债）'), action('end:surrender', '交械认拘，保住性命')]; }
+    if (route === 'xia') {
+      const shown = (t: BattleTactic, id = `battle:finale:${t}`) => { const view = battlePresentation(s, 'finale', t); return action(id, view.title, undefined, view.hint, view.details); };
+      return [...(['guard','environment','retreat','bargain'] as BattleTactic[]).filter(t=>battleEnabled(s,'finale',t)).map(t=>shown(t)), shown('attack', 'end:xia:fight'), ...(mainProof(s) ? [action('end:xia:proof', '当众逐份核对三账', undefined, '让可核材料拆散对方同盟；不与高手单斗。')] : []), action('end:xia:escort', '付船钱护送证人出围', undefined, '放弃追凶，先让证人活着离开；六两不足部分记债。'), shown('surrender', 'end:surrender')];
+    }
     if (route === 'trade') return [action('end:trade:public', '以十二两立公开股约，脚夫分利'), action('end:trade:monopoly', '以十二两接独占运输契，承担旧债主的要价')];
     if (route === 'shadow') return [action('end:shadow:publish', '把两类筹码公开，舍弃勒索收益'), action('end:shadow:sell', '以筹码换二十两，留一份自保')];
     if (route === 'office') return [action('end:office:trial', mainProof(s) ? '提交三账互证，申请重审许惟谦等人' : '只控告真档可证的伪印，不夸大证据'), action('end:office:compromise', '接受有限追责，换取核仓职缺')];
@@ -555,19 +576,16 @@ function performBattle(s:GameState,event:string,tactic:BattleTactic):GameState {
     next.campaign.finaleStep=1;
   }
   next.campaign.evidence=next.campaign.evidence.filter(id=>!verdict.lostEvidence.includes(id));
-  if(event==='assassin') {
-    const changes:string[]=[];
-    if(!['bargain','surrender'].includes(tactic)) changes.push(`力量 ${verdict.power} / 对阵 ${verdict.target}`);
-    if(verdict.damage>0) changes.push(`气血 -${verdict.damage}`);
-    if(verdict.qiCost>0) changes.push(`真气 -${verdict.qiCost}`);
-    if(verdict.cost>0) changes.push(`用银 ${verdict.cost} 两`);
-    if(verdict.lostEvidence.length) changes.push(`遗失：${verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')}`);
-    if(verdict.companionInjuries.length) changes.push('一名助阵同伴负伤');
-    next=tell(next,`${battles[event].title} · ${verdict.outcome}${changes.length?`。${changes.join(' · ')}`:''}。`);
-  } else {
-    next=tell(next,`${battles[event].title} · ${verdict.outcome}。己方力量${verdict.power}，对方压力${verdict.target}；损血${verdict.damage}、耗气${verdict.qiCost}、用银${verdict.cost}。${verdict.lostEvidence.length?'遗失随身材料：'+verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')+'。':''}${verdict.companionInjuries.length?'同伴为断后负伤，之后助阵力量降低。':''}${context.allies.map(a=>a.style).join('、')}`);
-  }
-  if(!next.player.health) {next.player.alive=false;next.player.deathCause=event==='assassin'?`${battles[event].title}中受创过重，气血耗尽。`:`${battles[event].title}中气血耗尽：力量${verdict.power}/${verdict.target}，战前已明示致命风险，损血${verdict.damage}。`;return endLife(next,'dead');}
+  const changes:string[]=[];
+  if(!['bargain','surrender'].includes(tactic) && tactic!=='retreat') changes.push(`力量 ${verdict.power} / 对阵 ${verdict.target}`);
+  if(verdict.damage>0) changes.push(`气血 -${verdict.damage}`);
+  if(verdict.qiCost>0) changes.push(`真气 -${verdict.qiCost}`);
+  if(verdict.cost>0) changes.push(`用银 ${verdict.cost} 两`);
+  if(verdict.lostEvidence.length) changes.push(`遗失：${verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')}`);
+  if(verdict.companionInjuries.length) changes.push('一名助阵同伴负伤');
+  if(context.allies.length) changes.push(`助阵：${context.allies.map(a=>a.style).join('、')}`);
+  next=tell(next,`${battles[event].title} · ${verdict.outcome}${changes.length?`。${changes.join(' · ')}`:''}。`);
+  if(!next.player.health) {next.player.alive=false;next.player.deathCause=`${battles[event].title}中受创过重，气血耗尽。`;return endLife(next,'dead');}
   if(tactic==='surrender') return endLife(next,'prison');
   return next;
 }

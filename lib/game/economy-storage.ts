@@ -1,9 +1,8 @@
-import { initialEconomy } from './economy.ts';
 import type { GameState } from './types.ts';
 
 export function decodeEconomy(state: GameState | null): GameState | null {
   if (!state) return null;
-  if (!Object.hasOwn(state, 'economy')) return { ...state, economy: initialEconomy() };
+  if (!Object.hasOwn(state, 'economy')) return null;
   const e = state.economy;
   if (!e || typeof e !== 'object' || e.schema !== 1 || ![0, 2].includes(e.innCredit) || ![0, 2].includes(e.medicalCredit) || ![0, 3].includes(e.medicalDebt) || !Array.isArray(e.transactions)) return null;
   if (!['innWorkAt', 'cheapLodgingAt', 'medicalWorkAt', 'medicalDebtAt'].every((key) => e[key as keyof typeof e] === null || Number.isFinite(e[key as keyof typeof e]))) return null;

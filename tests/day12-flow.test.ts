@@ -32,8 +32,9 @@ async function openSceneMenu(state: GameState): Promise<GameState> {
 }
 async function enter(places: LimitedActionId[] = []) {
   let state = await click(createInitialGame('基线测试客'), 'tell-attack');
+  state = await click(state, 'request-entry');
   for (const place of places) state = await click(state, place);
-  return click(state, 'request-entry');
+  return state;
 }
 const at = async (location: LocationId) => movePlayer(await enter(['ask-lodging', 'ask-clinic']), location);
 
@@ -106,7 +107,7 @@ void test('D08 健康但低气血角色不因时间流逝凭空重伤', async ()
 
 void test('D09 完整路线A：调查→放行→医馆治疗→客栈住宿→传闻→尸体比对', async () => {
   let state = createInitialGame('先医后宿');
-  for (const id of ['inspect-wound', 'inspect-bag', 'inspect-fragment', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) state = await click(state, id);
+  for (const id of ['inspect-wound', 'inspect-bag', 'inspect-fragment', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) state = await click(state, id);
   state = movePlayer(state, 'clinic');
   state = await click(state, 'request-treatment');
   assert.equal(state.player.injury, '无');

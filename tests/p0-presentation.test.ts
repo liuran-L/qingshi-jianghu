@@ -22,7 +22,7 @@ void test('V02 场景与立绘随当前台词切换，未知人物不泄露身�
  assert.equal(sceneFor({...s,locationId:'clinic'}).id,'clinic');
  assert.equal(sceneFor({...s,campaign:{...s.campaign,finale:'xia'}}).id,'saltstore');
 });
-void test('V03 旧档英文材料仅在表达投影转换，正文和 v6 内部键兼容不变',()=>{
+void test('V03 当前 v7 的内部材料键不直接暴露给玩家',()=>{
  const s=createInitialGame('旅人');s.dialogue[0].text='遗失随身材料：testament、official。';
  const before=encodeSave(s);const loaded=decodeSave(before)!;
  assert.equal(visibleLine(loaded.dialogue[0])?.text,'遗失随身材料：掌门遗嘱、县衙真档副本。');assert.equal(encodeSave(s),before);

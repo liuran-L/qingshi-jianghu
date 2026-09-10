@@ -50,13 +50,13 @@ void test('A04 盘问不把沉默做成通行路径；医馆拒绝确有取舍�
  assert.ok(!getAvailableActions(original,original.selectedNpcId).some(a=>a.id==='stay-silent'));
  assert.ok(!getAvailableActions(original,original.selectedNpcId).some(a=>a.id==='request-entry'));
  assert.deepEqual(original.npcKnowledge['shen-yanqiu'],createInitialGame('寡言客').npcKnowledge['shen-yanqiu']);
- let s=await click(original,'tell-attack');s=await click(s,'ask-clinic');s=await click(s,'request-entry');s=movePlayer(s,'clinic');
+ let s=await click(original,'tell-attack');s=await click(s,'request-entry');s=await click(s,'ask-clinic');s=movePlayer(s,'clinic');
  for(const id of ['open-dayone','medical-refuse','refuse-exam'] as const)s=await click(s,id);
  assert.equal(s.dayOne.interview,'refused');assert.equal(s.dayOne.consent,'refused');assert.equal(s.playerKnownFactIds.includes('medical-report'),false);
  assert.ok(s.dialogue.some(d=>d.text.includes('伤势不会等')));
  assert.ok(getAvailableActions(s,s.selectedNpcId).length>0);
  const old=JSON.parse(encodeSave(original));delete old.dayTwo;
- const loaded=decodeSave(JSON.stringify(old));assert.ok(loaded);assert.equal(loaded.dayTwo.departurePlan,'none');assert.equal(loaded.dayTwo.clinicEchoSeen,false);
+ assert.equal(decodeSave(JSON.stringify(old)),null);
  const partial=JSON.parse(encodeSave(original));delete partial.dayTwo.departurePlan;assert.equal(decodeSave(JSON.stringify(partial)),null);
 });
 void test('A05 背包不恢复扣押物，已知与实物分开，死亡拘押只可查看',async()=>{

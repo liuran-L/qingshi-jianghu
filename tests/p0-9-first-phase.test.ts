@@ -34,8 +34,8 @@ void test('P09-01 关键提示由界面派生，普通观察不滥加提示', as
 
   state = await click(state, 'inspect-bag');
   assert.match(byId(state, 'show-gate-fragment').hint ?? '', /暂扣.*候复核/);
-  assert.equal(state.version, 6);
-  assert.ok(SAVE_KEY.startsWith('qingshi-jianghu-save-v5'));
+  assert.equal(state.version, 7);
+  assert.ok(SAVE_KEY.startsWith('qingshi-jianghu-save-v7'));
 });
 
 void test('P09-02 第一幕选择常驻说明眼前取舍，离场不预报具体后果', async () => {
@@ -89,8 +89,8 @@ void test('P09-03 第五日冲突分三层，只显示本次会变化的战况�
 });
 
 void test('P09-04 第四至八日因果链齐全，第七日起火前只写可见火险', () => {
-  assert.deepEqual(firstActPreludes.map(prelude => prelude.eventId), ['temple', 'assassin', 'inheritance', 'fire', 'identity']);
-  for (const prelude of firstActPreludes) {
+  assert.deepEqual(firstActPreludes.filter(prelude => storyEvents.find(event => event.id === prelude.eventId)!.day <= 8).map(prelude => prelude.eventId), ['temple', 'assassin', 'inheritance', 'fire', 'identity']);
+  for (const prelude of firstActPreludes.filter(prelude => storyEvents.find(event => event.id === prelude.eventId)!.day <= 8)) {
     assert.ok(prelude.naturalSource && prelude.activeSource && prelude.recoverySource && prelude.aftermath);
     const event = storyEvents.find(item => item.id === prelude.eventId)!;
     assert.ok(event.opening.length >= 2 && event.choices.filter(choice => !choice.id.startsWith('battle-')).every(choice => choice.hint));
@@ -103,7 +103,7 @@ void test('P09-04 第四至八日因果链齐全，第七日起火前只写可�
   assert.doesNotMatch(`${fire.label}${fire.hint}${fire.naturalSource}${fire.activeSource}`, /纵火|点火|幕后|真凶/);
   assert.match(fire.recoverySource, /火后/);
 
-  const firstActText = JSON.stringify({ preludes: firstActPreludes, events: storyEvents.filter(event => event.day <= 8) });
+  const firstActText = JSON.stringify({ preludes: firstActPreludes.filter(prelude => storyEvents.find(event => event.id === prelude.eventId)!.day <= 8), events: storyEvents.filter(event => event.day <= 8) });
   assert.doesNotMatch(firstActText, /不能证明|不等于|实际|结论|回声|规则/);
   const day12 = storyEvents.find(event => event.day === 12)!;
   assert.equal(day12.title, '活人的价');

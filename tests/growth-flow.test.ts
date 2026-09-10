@@ -16,7 +16,7 @@ async function click(state: GameState, id: LimitedActionId): Promise<GameState> 
 const has = (state: GameState, id: LimitedActionId) => getAvailableActions(state, state.selectedNpcId).some((item) => item.id === id);
 async function admitted() {
   let s = createInitialGame('习者');
-  for (const id of ['inspect-wound', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) s = await click(s, id);
+  for (const id of ['inspect-wound', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) s = await click(s, id);
   return s;
 }
 
@@ -58,10 +58,10 @@ void test('G03 医馆实际互动解锁医术；辨伤和包扎不免费治疗�
   assert.match(inspected.dialogue.at(-1)?.text ?? '', /创缘平直|不像跌撞/);
 });
 
-void test('G04 伪造点数、越过前置、冻结、死亡或拘押成长菜单均被拒绝；旧档补默认', async () => {
+void test('G04 伪造点数、越过前置、冻结、死亡、拘押或缺字段档均被拒绝', async () => {
   const clean = createInitialGame('存档客');
   const legacy = { ...clean }; delete (legacy as Partial<GameState>).growth;
-  assert.deepEqual(decodeSave(JSON.stringify(legacy))?.growth.schema, 1);
+  assert.equal(decodeSave(JSON.stringify(legacy)), null);
   const forged = { ...clean, growth: { ...clean.growth, step: { ...clean.growth.step, unlocked: true, availablePoints: 1 } } };
   assert.equal(decodeSave(JSON.stringify(forged)), null);
   const bypass = { ...clean, growth: { ...clean.growth, medicine: { ...clean.growth.medicine, unlocked: true, pointAwardedAt: clean.worldMinutes, availablePoints: 0, nodes: ['medicine-bandage' as const] } } };

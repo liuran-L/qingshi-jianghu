@@ -18,7 +18,7 @@ async function click(state: GameState, id: LimitedActionId): Promise<GameState> 
 const has = (state: GameState, id: LimitedActionId) => getAvailableActions(state, state.selectedNpcId).some((item) => item.id === id);
 async function admitted(name = '回归客') {
   let s = createInitialGame(name);
-  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) s = await click(s, id);
+  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) s = await click(s, id);
   return s;
 }
 async function caseReady(identity: 'identify-memory' | 'identify-roster') {
@@ -74,7 +74,7 @@ void test('Q03 夜渡与两条中人入口均冻结且不泄露未传达信息�
     if (route === 'inn') { broker = movePlayer(broker, 'inn'); broker = await click(broker, 'open-dayone'); broker = await click(broker, 'show-fragment'); broker = await click(broker, 'close-dayone'); }
     else {
       broker = createInitialGame('中人马');
-      for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'mention-ding17', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) broker = await click(broker, id);
+      for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'mention-ding17', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) broker = await click(broker, id);
       assert.equal(broker.npcStates['ma-sandao'].informedRiverGang, true);
     }
     broker = movePlayer(broker, 'inn'); broker = await click(broker, 'open-dayone'); broker = await click(broker, 'register-true'); broker = await click(broker, 'rest-night');

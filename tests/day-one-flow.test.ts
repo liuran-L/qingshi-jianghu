@@ -24,7 +24,7 @@ async function click(s: GameState, id: LimitedActionId): Promise<GameState> {
 }
 async function steps(s: GameState, ids: LimitedActionId[]) { for (const id of ids) s = await click(s, id); return s; }
 async function enter(place: 'inn' | 'clinic', npc?: string) {
-  let s = await steps(createInitialGame('江客'), ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry']);
+  let s = await steps(createInitialGame('江客'), ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging']);
   s = movePlayer(s, place);
   return npc ? selectNpc(s, npc) : s;
 }
@@ -141,12 +141,9 @@ void test('F07 保密锁住报案病案，另行授权恢复；拒检后可合�
   assert.equal(s.evidenceCustody.medical, 'player');
 });
 
-void test('F08 v5/v6旧档增量默认，部分字段损坏/非法返还时间拒绝', () => {
+void test('F08 v5/v6 旧档、部分字段损坏与非法返还时间均拒绝', () => {
   for (const file of ['v5-game.json', 'v6-before-dayone.json']) {
-    const s = decodeSave(readFileSync(new URL(`./fixtures/${file}`, import.meta.url), 'utf8'));
-    assert.ok(s);
-    assert.equal(s.dayOne.schema, 1);
-    assert.deepEqual(decodeSave(encodeSave(s)), s);
+    assert.equal(decodeSave(readFileSync(new URL(`./fixtures/${file}`, import.meta.url), 'utf8')), null);
   }
   const s = createInitialGame('坏档');
   assert.equal(decodeSave(JSON.stringify({ ...s, dayOne: { schema: 1 } })), null);
@@ -221,7 +218,7 @@ void test('F10 复核或止血中死亡不返还、不复活、不授予暂缓�
 
 void test('F11 新分支组合→读档→保密病案授权→第三日既有封存结局；货车截止不变', async (t) => {
   let s = await steps(createInitialGame('江客'), ['inspect-wound', 'inspect-bag', 'observe-gate']);
-  s = await steps(s, ['open-dayone', 'tell-amnesia', 'ask-clinic', 'ask-lodging', 'request-entry']);
+  s = await steps(s, ['open-dayone', 'tell-amnesia', 'request-entry', 'ask-clinic', 'ask-lodging']);
   s = movePlayer(s, 'inn');
   s = await steps(s, ['open-dayone', 'register-alias', 'open-dayone', 'ask-companion', 'show-fragment', 'close-dayone']);
   s = selectNpc(s, 'lu-guanlan');

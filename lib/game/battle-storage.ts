@@ -1,5 +1,5 @@
 import type { GameState } from './types.ts';
-import { initialBattles, battles, tacticNames, judgeBattle } from './battle.ts';
+import { battles, tacticNames, judgeBattle } from './battle.ts';
 import { artNodes, hasArt } from './arts-content.ts';
 import { dayAt } from './campaign.ts';
 import { storyEvents } from './campaign-content.ts';
@@ -7,7 +7,7 @@ import { getPrivateNpc } from './world-private.ts';
 const record=(x:unknown):x is Record<string,unknown>=>!!x&&typeof x==='object'&&!Array.isArray(x);
 export function decodeBattles(s:GameState|null):GameState|null {
  if(!s)return null;
- if(!Object.hasOwn(s,'battles')) s={...s,battles:initialBattles()};
+ if(!Object.hasOwn(s,'battles')) return null;
  const b=s.battles;
  if(!record(b)||b.schema!==1||!Array.isArray(b.records)||b.records.length>Object.keys(battles).length)return null;
  const used=new Set<string>();let last=s.storyStartedAtMinutes;

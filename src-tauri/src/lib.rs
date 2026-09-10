@@ -10,12 +10,46 @@ fn valid_slot(slot: &str) -> bool {
 fn open_database<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<Connection, String> {
     let directory = app.path().app_data_dir().map_err(|error| error.to_string())?;
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-    let connection = Connection::open(directory.join("qingshi-jianghu-v5.db")).map_err(|error| error.to_string())?;
+    let connection = Connection::open(directory.join("qingshi-jianghu-v7.db")).map_err(|error| error.to_string())?;
     connection.execute_batch(
         "CREATE TABLE IF NOT EXISTS saves (slot TEXT PRIMARY KEY, label TEXT NOT NULL, payload TEXT NOT NULL, saved_at INTEGER NOT NULL);
-         CREATE TABLE IF NOT EXISTS save_backups (slot TEXT PRIMARY KEY, payload TEXT NOT NULL, saved_at INTEGER NOT NULL);",
+         CREATE TABLE IF NOT EXISTS save_backups (slot TEXT PRIMARY KEY, payload TEXT NOT NULL, saved_at INTEGER NOT NULL);
+         CREATE TABLE IF NOT EXISTS save_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);",
     ).map_err(|error| error.to_string())?;
     Ok(connection)
+}
+
+fn table_exists(connection: &Connection, table: &str) -> Result<bool, String> {
+    connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
+        params![table],
+        |row| row.get(0),
+    ).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn prepare_save_version(app: tauri::AppHandle) -> Result<bool, String> {
+    let connection = open_database(&app)?;
+    let prepared: Option<String> = connection.query_row(
+        "SELECT value FROM save_meta WHERE key = 'legacy-reset-complete'",
+        [],
+        |row| row.get(0),
+    ).optional().map_err(|error| error.to_string())?;
+    if prepared.as_deref() == Some("1") { return Ok(false); }
+
+    let directory = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    let legacy_path = directory.join("qingshi-jianghu-v5.db");
+    if legacy_path.exists() {
+        let legacy = Connection::open(legacy_path).map_err(|error| error.to_string())?;
+        if table_exists(&legacy, "saves")? { legacy.execute("DELETE FROM saves", []).map_err(|error| error.to_string())?; }
+        if table_exists(&legacy, "save_backups")? { legacy.execute("DELETE FROM save_backups", []).map_err(|error| error.to_string())?; }
+    }
+    connection.execute(
+        "INSERT INTO save_meta(key, value) VALUES('legacy-reset-complete', '1')
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        [],
+    ).map_err(|error| error.to_string())?;
+    Ok(true)
 }
 
 #[tauri::command]
@@ -130,7 +164,7 @@ fn load_backup(app: tauri::AppHandle) -> Result<Option<BackupRecord>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![save_game, load_game, load_backup, list_saves, rename_save, delete_save])
+        .invoke_handler(tauri::generate_handler![prepare_save_version, save_game, load_game, load_backup, list_saves, rename_save, delete_save])
         .run(tauri::generate_context!())
         .expect("failed to run qingshi jianghu");
 }

@@ -59,7 +59,7 @@ void test('世界包含六个公开地点、八个公开 NPC 与八个独立私�
 
 void test('新角色只掌握亲历信息且城门尚未放行', () => {
   const game = createInitialGame('燕小六');
-  assert.equal(game.version, 6);
+  assert.equal(game.version, 7);
   assert.deepEqual(game.knownLocationIds, ['gate']);
   assert.deepEqual(game.playerKnownFactIds, []);
   assert.equal(game.gateAccess, false);
@@ -106,7 +106,9 @@ void test('玩家陈述只形成主张，不直接改写世界事实', async () 
 void test('问路只解锁对应地点，普通说明不会同时泄露地点', async () => {
   const game = await interact(createInitialGame('燕小六'), request('tell-attack', '我遇袭了。'));
   assert.deepEqual(game.knownLocationIds, ['gate']);
-  const inn = await interact(game, request('ask-lodging', '哪里投宿？'));
+  assert.strictEqual(await interact(game, request('ask-lodging', '哪里投宿？')), game);
+  const cleared = await interact(game, request('request-entry', '请按规矩放行。'));
+  const inn = await interact(cleared, request('ask-lodging', '哪里投宿？'));
   assert.ok(inn.knownLocationIds.includes('inn'));
   assert.ok(!inn.knownLocationIds.includes('clinic'));
   const clinic = await interact(inn, request('ask-clinic', '哪里治伤？'));
@@ -117,6 +119,7 @@ void test('未知地点与未获城门放行时都不能移动', async () => {
   const initial = createInitialGame('燕小六');
   assert.strictEqual(movePlayer(initial, 'inn'), initial);
   const knowsInn = await interact(await interact(initial, request('tell-attack', '我遇袭了。')), request('ask-lodging', '哪里投宿？'));
+  assert.deepEqual(knowsInn.knownLocationIds, ['gate']);
   assert.strictEqual(movePlayer(knowsInn, 'inn'), knowsInn);
 });
 

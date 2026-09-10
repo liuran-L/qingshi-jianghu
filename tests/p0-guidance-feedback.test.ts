@@ -61,8 +61,8 @@ void test('P0-02 行囊、NPC异常和客栈问话是独立入口；错过主动
   assert.ok(!reaction.playerKnownFactIds.includes('baggage-watch-mark'));
 
   let inn = await click(createInitialGame('投店客'), 'tell-attack');
-  inn = await click(inn, 'ask-lodging');
   inn = await click(inn, 'request-entry');
+  inn = await click(inn, 'ask-lodging');
   inn = movePlayer(inn, 'inn');
   inn = await click(inn, 'observe-inn');
   assert.ok(inn.playerKnownFactIds.includes('inn-arrival-inquiry'));
@@ -90,7 +90,7 @@ void test('P0-04 有有效探索时不强推；探索收束后只给至多两条
   const initial = createInitialGame('看路客');
   assert.deepEqual(sceneGuidance(initial, getAvailableActions(initial, initial.selectedNpcId)), []);
   let state = initial;
-  for (const id of ['inspect-wound', 'inspect-bag', 'inspect-fragment', 'observe-gate', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) state = await click(state, id);
+  for (const id of ['inspect-wound', 'inspect-bag', 'inspect-fragment', 'observe-gate', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) state = await click(state, id);
   const guidance = sceneGuidance(state, getAvailableActions(state, state.selectedNpcId));
   assert.ok(guidance.length > 0 && guidance.length <= 2);
   assert.equal(guidance[0].urgent, true);
@@ -122,7 +122,7 @@ void test('P0-05 未知姓名在说话者、正文和日志投影中保持观察
   }
 });
 
-void test('P0-06 关系只显示阶段；细微数值变化不产生阶段提示，旧 v5/v6 档不提前获知新线索', () => {
+void test('P0-06 关系只显示阶段；细微数值变化不产生阶段提示，v7 当前档不提前获知新线索', () => {
   const initial = createInitialGame('旧识客');
   assert.equal(relationshipStage(initial, 'ma-sandao'), '陌路');
   const crossed = changeNpcRelationship(initial, 'ma-sandao', 'p0-stage', { trust: 2 });
@@ -133,13 +133,11 @@ void test('P0-06 关系只显示阶段；细微数值变化不产生阶段提示
   assert.match(person.detail, /关系阶段：熟稔/);
   assert.doesNotMatch(person.detail, /信任|好感|怀疑|敌意|\b\d+\b/);
 
-  const oldV6 = decodeSave(encodeSave(initial))!;
-  assert.deepEqual(oldV6.playerKnownFactIds, []);
-  assert.equal(oldV6.worldMinutes, initial.worldMinutes);
-  const v5 = decodeSave(readFileSync(new URL('./fixtures/v5-game.json', import.meta.url), 'utf8'))!;
-  assert.ok(!v5.playerKnownFactIds.some((id) => ['baggage-watch-mark', 'inn-arrival-inquiry', 'day-end-watch-rumor', 'next-morning-moving-lead'].includes(id)));
-  assert.equal(v5.version, 6);
-  const oldCampaign = { ...oldV6, campaign: { ...oldV6.campaign, startedAt: oldV6.worldMinutes }, worldMinutes: oldV6.storyStartedAtMinutes + 4 * 1440 };
-  const advancedOldCampaign = advanceGameTime(oldCampaign, 5);
-  assert.ok(!advancedOldCampaign.playerKnownFactIds.some((id) => ['day-end-watch-rumor', 'next-morning-moving-lead'].includes(id)));
+  const current = decodeSave(encodeSave(initial))!;
+  assert.deepEqual(current.playerKnownFactIds, []);
+  assert.equal(current.worldMinutes, initial.worldMinutes);
+  assert.equal(decodeSave(readFileSync(new URL('./fixtures/v5-game.json', import.meta.url), 'utf8')), null);
+  const currentCampaign = { ...current, campaign: { ...current.campaign, startedAt: current.worldMinutes }, worldMinutes: current.storyStartedAtMinutes + 4 * 1440 };
+  const advancedCurrentCampaign = advanceGameTime(currentCampaign, 5);
+  assert.ok(!advancedCurrentCampaign.playerKnownFactIds.some((id) => ['day-end-watch-rumor', 'next-morning-moving-lead'].includes(id)));
 });

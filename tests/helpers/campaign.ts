@@ -27,7 +27,7 @@ async function click(s: GameState, id: LimitedActionId) {
 /** 不伪造人物资源：序章每一步都走正式规则、真实选项和存档解码。 */
 async function beginning(origin: 'sealed-salt' | 'night-ferry' | 'fragment-transferred' | 'missed' = 'sealed-salt') {
   let s = createInitialGame('长路客');
-  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) s = await click(s, id);
+  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) s = await click(s, id);
   s = movePlayer(s, 'clinic');
   s = await click(s, 'request-treatment');
   s = movePlayer(s, 'inn');
@@ -44,6 +44,7 @@ async function beginning(origin: 'sealed-salt' | 'night-ferry' | 'fragment-trans
     s = movePlayer(s, 'clinic');
     for (const id of ['ask-corpse', 'compare-corpse-wound', 'identify-memory'] as const) s = await click(s, id);
     if (origin === 'night-ferry') {
+      s = movePlayer(s, 'inn');
       s = await click(s, 'open-daytwo'); s = await click(s, 'decline-report'); s = movePlayer(s, 'dock');
       while (s.day3CargoStatus !== 'departed') s = await click(s, 'wait-night-ferry');
       s = await click(s, 'take-night-ferry');

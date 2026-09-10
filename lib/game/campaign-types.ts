@@ -45,7 +45,7 @@ export interface StoryChoice {
   hint?: string;
   reply: string;
   effect: StoryEffect;
-  need?: { ally?: string; node?: string; money?: number; flag?: string; evidence?: string; route?: LifeRoute; score?: number };
+  need?: { ally?: string; node?: string; money?: number; wanted?: number; flag?: string; evidence?: string; route?: LifeRoute; score?: number };
 }
 export interface StoryEvent {
   id: string;

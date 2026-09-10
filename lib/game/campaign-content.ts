@@ -7,7 +7,7 @@ export const coreNames: Record<string, string> = { 'ma-sandao': '马三刀', 'su
 export const evidenceNames: Record<string, string> = { official: '县衙真档副本', transport: '漕运账副本', medicine: '药库出入记录', testament: '掌门遗嘱', witness: '幸存商旅证言' };
 
 export interface FirstActPrelude {
-  eventId: 'temple' | 'assassin' | 'inheritance' | 'fire' | 'identity';
+  eventId: StoryEvent['id'];
   label: string;
   hint?: string;
   minutes: number;
@@ -19,7 +19,7 @@ export interface FirstActPrelude {
   aftermath: string;
 }
 
-/** 第四至八日只写玩家可观察的前兆与来源，不在文本中确认幕后归属。 */
+/** 全篇只写玩家可观察的前兆与来源，不在文本中确认幕后归属。 */
 export const firstActPreludes: FirstActPrelude[] = [
   {
     eventId: 'temple', label: '沿药渣与脚印去城外看看（半个时辰）', minutes: 30, money: 0,
@@ -55,6 +55,104 @@ export const firstActPreludes: FirstActPrelude[] = [
     activeSource: '你把榜文、旧口供页码和新复核簿逐一对过。自报、住店登记、官面核验分栏落笔，旧话与改口都会留在纸上。',
     recoverySource: '后来公示栏还贴着复核章程，也留着你的旧登记页号。身份仍可补办，封城当日那一次担保却已经散场。',
     aftermath: '此后过城门，差役会一并翻看路引、担保簿与旧口供。经手人只认自己落过笔的那一栏。',
+  },
+  {
+    eventId: 'survivor', label: '查码头后仓的饭碗与轮班（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '苏晚棠收到一张赎人条，只写了活口的衣着与码头后仓，没有写下令者的姓名。',
+    activeSource: '你数过送进后仓的饭碗，又对了两班守门人的换岗时辰。那里确实单独关着一个人；他能说的，只会是自己亲眼见过的袭击。',
+    recoverySource: '船工后来交出一张少了人名的货单和一枚空牢饭签，只能证明这里曾拘过人。',
+    aftermath: '后仓换了门闩。活口是否离开、证言是否留下，都只按你当日实际做成的事记。',
+  },
+  {
+    eventId: 'sister', label: '核盐场点名与当日船签（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '苏晚棠拿出妹妹的来信和一页缺角契纸：盐场今日换班后还要转走一人。',
+    activeSource: '你在盐场外对过点名、女工住处与离场船签，确认苏小蝉仍被限制去留，也确认今天是最后一班转运。',
+    recoverySource: '后来空床铺旁只剩退回的契纸和一张离场船签，没人能把它们说成团圆。',
+    aftermath: '客栈仍为小蝉留着一盏灯。姐妹是否相见、抄账是否交出，各按实际结果延续。',
+  },
+  {
+    eventId: 'roads', label: '在城门核对外路告示与脚程（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '城门换了路牌：北山可访药农，河道可押货，邻府重新受理具名状纸。每一程都要两日往返。',
+    activeSource: '你分别向药农、船户与递状人核过脚程和能查的东西。三条路只各证一段，没有哪一条能替另外两条补全。',
+    recoverySource: '后来回城货签、药铺转抄和邻府公示各留一角材料，却补不回亲自走完两日的见闻。',
+    aftermath: '你走过的那条路留下了人情和凭据；其余道路也照常有人来往，并未停下来等你。',
+  },
+  {
+    eventId: 'pharmacy', label: '查断供药签与废栈运箱（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '回春堂常用原料突然断供。沈砚秋把残渣和旧药签分开放着，请你只核日期与去处。',
+    activeSource: '你对过药性反应、领用日期和废栈仓签，能确认一批原料被转走；谁下令、用在谁身上，仍须另证。',
+    recoverySource: '病案留样、药农底单与废栈焦纸后来还能各补一段来源，不能互相冒充。',
+    aftermath: '药柜空位仍在。实际取得的药签和医者能否继续作证，分别进入后面的案卷。',
+  },
+  {
+    eventId: 'assembly', label: '向旧门人核公议席牌与笔迹（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '青岳门公示山脚祠堂议事时辰，旧门人被请来核笔迹，药库也暂时封门。',
+    activeSource: '你把席牌、遗嘱笔迹和领药签分开问过。门人能认师门字迹，药农只能认领用，谁也不能代另一方作证。',
+    recoverySource: '下山弟子后来带回公议抄本与封库告示，只记当日公开说过的话。',
+    aftermath: '山门有人留下，也有人离开。问责、继位与陆观澜的去处不会被一句传闻合并成同一结果。',
+  },
+  {
+    eventId: 'riverfight', label: '查断索、船位与底舱备账（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '船户敲锣示警：盐河缆索被割，两岸都在囤箭，夹在中间的民船来不及靠岸。',
+    activeSource: '你查过断索切口、两岸船位和底舱备账。账在乔五船上，伤员与民船也都在箭程里，取哪一样都要放弃别处。',
+    recoverySource: '事后留下的伤单、断索与过秤签，只能分别说明伤亡、截船和货重。',
+    aftermath: '河面重新系索。民船、伤员、账副本和乔五对你的态度各有自己的去向。',
+  },
+  {
+    eventId: 'hearing', label: '核听审榜、档号与证词空白（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '巡按听审榜贴到县衙外，明列原件、副本与证人分栏，要求材料具名送入。',
+    activeSource: '你对过档号、签收人和证人记不清的空白。副本能核印样，证人只说亲见，谁也不能替案卷填满未知。',
+    recoverySource: '听审后仍可查公示底档和宁不平留存页，但当日未递的具名材料不会凭空入卷。',
+    aftermath: '立案只写收到的东西。减免、关系与证据去向也只随实际递交内容改变。',
+  },
+  {
+    eventId: 'olddebt', label: '查客栈后门盯梢与转移名单（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '客栈半闭店门，陌生客轮守后巷。苏晚棠把伙计名单压在账下，只问今晚先送谁走。',
+    activeSource: '你核过盯梢换班、后门路线和仍在店里的人。苏晚棠愿交什么，要看妹妹、伙计与旧约是否真的被照应过。',
+    recoverySource: '封条、散落房簿页与邻铺证言后来只能说明客栈怎样撤走，不能补出一处从未安排的藏身地。',
+    aftermath: '店门能否再开、谁有落脚处、账仍由谁保管，都按这夜的实际安排留下。',
+  },
+  {
+    eventId: 'hunt', label: '查医馆后巷记号与空药车（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '回春堂药旗被割，病人名单有翻动痕迹。沈砚秋请人先找车，不请任何人替他编出下令者。',
+    activeSource: '你在后巷找到踩乱的脚印、空药箱车与盯梢换岗。来人知道医馆住处，今晚首先要移走的是病人。',
+    recoverySource: '碎灯、病案缺页和幸存病人口述后来还能说明夜袭经过，却补不回死去的医者。',
+    aftermath: '医馆的灯是否再亮、病案由谁保存、落脚处是否暴露，各自进入后续。',
+  },
+  {
+    eventId: 'ship', label: '验船身吃水、药桶与取水口（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '船工的呼救与刺鼻异味从河湾传来。那条船吃水异常，上游取水口却还开着。',
+    activeSource: '你验过桶签、船身吃水、风向和引水口位置。船上的人、桶里的药与岸边取水都是真的风险，点火不能替你分清罪责。',
+    recoverySource: '漂桶、死鱼带和船工名册后来只能共同圈出污染与失踪范围。',
+    aftermath: '河湾是否封锁、船工是否上岸、清单与药桶去了哪里，都按现场处置留下。',
+  },
+  {
+    eventId: 'order', label: '逐巷核仓数、领粮簿与钥匙（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '县衙贴出开仓召集，公开现存仓数。领粮簿却漏了几巷名字，三把钥匙也分在不同人手里。',
+    activeSource: '你逐巷核了人数、仓重、运价和钥匙经手。今天必须开仓；互保、商运、公账与夜送各自承担不同责任。',
+    recoverySource: '领粮簿、空仓封条和巷口签名后来能说明粮怎样分，不能证明所有人都同意。',
+    aftermath: '谁领到粮、谁在账上签名、以后由谁维持运转，都从这次开仓继续。',
+  },
+  {
+    eventId: 'threeledgers', label: '按缺账清单分头核三种来源（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '宁不平把现有案卷拆成三栏，列出官档、运输账与药签各自缺失的页码。',
+    activeSource: '你分别追过档号、码头货签与药农签押。没有的一栏只能留空；副本、人证与药性不能跨栏代证。',
+    recoverySource: '期限过后，案卷末页仍会如实记下缺口，却不会替你生成未取得的材料。',
+    aftermath: '三账能否相合，决定最后可以说到哪一步；没补齐的部分仍是疑问。',
+  },
+  {
+    eventId: 'lastprice', label: '核报价信、信使与实际交割物（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '几封来路不同的报价信送到落脚处，各自只写愿换什么，没有一封能替你签名。',
+    activeSource: '你核过信使、交割地点与自己真正持有的材料。银钱、职位与减免都只交换明写的东西，不会抹去旧账。',
+    recoverySource: '未接受的信封后来仍在，既有债务与追查也仍在；错过报价不会补来收益。',
+    aftermath: '你接受或拒绝的只是这次开价。此前走过的路仍决定终局还有哪些门。',
+  },
+  {
+    eventId: 'witnessnight', label: '查三条守夜路、车辆与灯号（半个时辰）', minutes: 30, money: 0,
+    naturalSource: '具名证人把威胁信交来，信上写着散去时限。客栈灯照三条巷口，一个人守不住全部。',
+    activeSource: '你对过守夜路线、车轮、灯号和实际到场的人。旧落脚处、盟友、车钱或公开登记，只能各守住一部分风险。',
+    recoverySource: '空房、遗落行李与撤回证词记录后来能说明谁散去，不能把未保护的人写成获救。',
+    aftermath: '证人是否留下、威胁信是否公开、明日谁能当面作证，都只按这一夜实际完成的安排记。',
   },
 ];
 
@@ -150,7 +248,7 @@ export const storyEvents: StoryEvent[] = [
       { id: 'official', label: '交真档副本，要求留原始收据', need: { evidence: 'official' }, reply: '书吏不得不把编号、来源和签收人全写进去。许惟谦的印样第一次被摆到桌面上，事情还没有判完。', effect: { route: 'office', flags: ['hearing-filed'], help: 'ning-buping', wanted: -2 } },
       { id: 'witness', label: '请幸存商旅作证，不替他补词', need: { evidence: 'witness' }, reply: '他有几处记不清，你没有替他接话。宁不平把不确定之处圈出来，反而把证言留下了。', effect: { route: 'xia', flags: ['hearing-filed'], help: 'ning-buping' } },
       { id: 'buycopy', label: '付五两抄录公示底档，另作准备', need: { money: 5 }, reply: '你付的是抄录纸墨与核章费，拿到盖章真档。今天不急着下结论，留待三份账能够相合的那一天。', effect: { route: 'trade', money: -5, evidence: ['official'] } },
-      { id: 'amnesty', label: '交出夜行路线，请求减免追查', reply: '你交代自己确实走过的水道，没有编造同伙。官府撤去部分追查，乔五却少了一条退路。', effect: { route: 'shadow', wanted: -3, harm: 'qiao-wu', flags: ['amnesty'] } },
+      { id: 'amnesty', label: '交代自己走过的水道，请求减免追查', hint: '交出已经走过的水道，换取部分减免；乔五也会失去这条退路。', need: { flag: 'waterway' }, reply: '你只交代自己确实走过的水道，没有编造同伙。官府撤去部分追查，乔五却少了一条退路。', effect: { route: 'shadow', wanted: -3, harm: 'qiao-wu', flags: ['amnesty'] } },
     ], missed: { text: '巡按暂以亏空立案，未收到你的具名材料。临时结论不等于全案真相。', effect: {} } },
   { id: 'olddebt', day: 41, title: '掌柜的最后一本账', location: 'inn', speaker: 'su-wantang',
     opening: ['苏晚棠把茶壶搁在柜台上，手指却没有离开账本。', '“以前你怎么待人，我记得。但记得，不等于今晚便能什么都给你。”'],
@@ -197,7 +295,7 @@ export const storyEvents: StoryEvent[] = [
       { id: 'copy', label: '保留副本，约定次日公开核验', reply: '你把保管人和交接时刻分别写下。递银票的人收回手，此后只能从证据本身与你争辩。', effect: { route: 'office', flags: ['public-copies'], help: 'ning-buping' } },
       { id: 'mutual', label: '邀各巷伙计、脚夫互相作保', reply: '没人替整座城许诺，只替认识的人留一道门。互保名单分了三份，谁也不能独占。', effect: { route: 'xia', flags: ['safehouse'], help: 'lu-guanlan' } },
       { id: 'freight', label: '接下最后一趟粮运，实做实结', reply: '你核清最后一船粮，收下六两运费。对方想用一纸独家约留住你，你只签了这一趟。', effect: { route: 'trade', money: 6, help: 'su-wantang' } },
-      { id: 'vanish', label: '交代一次旧案，请求撤去部分追查', reply: '你只认自己确实做过的事，换一份减免文书。旧笔录仍在，往后出示文书，也须承认它从何而来。', effect: { route: 'shadow', wanted: -2, flags: ['amnesty'] } },
+      { id: 'vanish', label: '交代一次旧案，请求撤去部分追查', hint: '承认一次已经留下的旧案，换取部分减免；旧笔录仍会保留。', need: { wanted: 1 }, reply: '你只认自己确实做过的事，换一份减免文书。旧笔录仍在，往后出示文书，也须承认它从何而来。', effect: { route: 'shadow', wanted: -2, flags: ['amnesty'] } },
     ], missed: { text: '最后的开价无人替你应承。你仍可以按已经积累的本事和证据选择终局。', effect: {} } },
   { id: 'witnessnight', day: 57, title: '最后一盏灯', location: 'inn', speaker: 'su-wantang',
     opening: ['具名证人收到最后一次威胁。客栈的灯照着三条巷口，你一个人守不住全部。', '门缝里递进一句话：“明日盐仓相见。带你自己肯承担的东西来。”'],

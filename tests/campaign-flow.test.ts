@@ -7,7 +7,7 @@ import { getAvailableActions } from '../lib/game/limited-actions.ts';
 import { decodeSave, encodeSave } from '../lib/game/storage.ts';
 import { mockAIService } from '../lib/ai/mock-service.ts';
 import { prepareService } from './helpers/confirmed-service.ts';
-import { campaignDay, dayAt, routeQualification, lifeSummary, conflictPreview, initialCampaign } from '../lib/game/campaign.ts';
+import { campaignDay, dayAt, routeQualification, lifeSummary, conflictPreview } from '../lib/game/campaign.ts';
 import { storyEvents } from '../lib/game/campaign-content.ts';
 import { portraits, portraitForLine } from '../lib/game/portraits.ts';
 import type { GameState, LimitedActionId } from '../lib/game/types.ts';
@@ -30,7 +30,7 @@ async function click(s: GameState, id: LimitedActionId) {
 /** 不伪造人物资源：序章每一步都走正式规则、真实选项和存档解码。 */
 async function beginning(origin: 'sealed-salt' | 'night-ferry' | 'fragment-transferred' | 'missed' = 'sealed-salt') {
   let s = createInitialGame('长路客');
-  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'ask-clinic', 'ask-lodging', 'request-entry'] as const) s = await click(s, id);
+  for (const id of ['inspect-wound', 'inspect-bag', 'observe-gate', 'tell-attack', 'request-entry', 'ask-clinic', 'ask-lodging'] as const) s = await click(s, id);
   s = movePlayer(s, 'clinic');
   s = await click(s, 'request-treatment');
   s = movePlayer(s, 'inn');
@@ -47,6 +47,7 @@ async function beginning(origin: 'sealed-salt' | 'night-ferry' | 'fragment-trans
     s = movePlayer(s, 'clinic');
     for (const id of ['ask-corpse', 'compare-corpse-wound', 'identify-memory'] as const) s = await click(s, id);
     if (origin === 'night-ferry') {
+      s = movePlayer(s, 'inn');
       s = await click(s, 'open-daytwo'); s = await click(s, 'decline-report'); s = movePlayer(s, 'dock');
       while (s.day3CargoStatus !== 'departed') s = await click(s, 'wait-night-ferry');
       s = await click(s, 'take-night-ferry');
@@ -163,10 +164,10 @@ void test('L03 路线转向有实际代价，已学技艺不抹除；重复工�
   assert.equal(failed.campaign.wanted, 8);
 });
 
-void test('L04 六十日存档结构损坏拒绝，完整旧档补默认不推进时钟', async () => {
+void test('L04 六十日存档结构损坏与缺字段旧档均拒绝', async () => {
   const initial = createInitialGame('旧客');
   const old = JSON.parse(encodeSave(initial)); delete old.campaign;
-  assert.deepEqual(decodeSave(JSON.stringify(old))!.campaign, initialCampaign());
+  assert.equal(decodeSave(JSON.stringify(old)), null);
   let s = await beginning(); s = await click(s, 'journey-work:trade');
   for (const mutate of [
     (x: GameState) => { x.campaign.wanted = 11; },
@@ -271,7 +272,7 @@ void test('L11 战力公开裁决：胜、负伤撤退、明确致死、投降�
   assert.ok(loss.campaign.flags.includes('xia-defeat')); assert.ok(loss.player.alive);
   s.player.health = 1;
   const death = await click(s, 'journey-end:xia:fight');
-  assert.equal(death.campaign.ending, 'dead'); assert.match(death.player.deathCause!, /战前已明示致命风险/);
+  assert.equal(death.campaign.ending, 'dead'); assert.match(death.player.deathCause!, /受创过重.*气血耗尽/);
   const prison = await click(encounter as GameState, 'journey-end:surrender');
   assert.equal(prison.campaign.ending, 'prison'); assert.equal(prison.player.alive, true);
 });

@@ -18,7 +18,7 @@ import { worldEvents } from '../lib/game/world.ts';
 void test('UI01 功法真实分支、四种状态、阅读锁与旧档投影', async()=>{
  let s=await beginning();s=await click(s,'journey-care');s=await click(s,'journey-wait');s=await click(s,'journey-attend:temple');s=await click(s,'journey-choose:temple:medicine');s=await click(s,'journey-teach:medicine');
  const before=encodeSave(s), old=JSON.parse(before);delete old.arts;delete old.battles;
- const loaded=decodeSave(JSON.stringify(old));assert.ok(loaded);
+ assert.equal(decodeSave(JSON.stringify(old)),null);const loaded=decodeSave(before)!;
  const graph=artGraph(loaded,'medicine',getAvailableActions(loaded,null));
  assert.equal(graph.nodes[0].state,'available');assert.equal(graph.nodes[1].state,'locked');
  assert.deepEqual(graph.edges.map(e=>[e.from.id,e.to.id]),artNodes.filter(n=>n.tree==='medicine'&&n.prerequisite).map(n=>[n.prerequisite,n.id]));
