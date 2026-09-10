@@ -38,7 +38,7 @@ export function ArtTreeDiagram({game,tree,actions,ready,onLearn}:{game:GameState
     <p>前置：{detail.prerequisiteTitle}。{detail.pledge?'还需相应守诺或重大事件经历。':''}</p>
     <p>获得与成本：{artAcquisition(tree)}</p>
     <p>当前条件：{detail.reason}</p><p>兑换点数条件：{artTrainingBlock(game,tree)??'可兑换；仍需完成当前对话。'}</p>
-    <p>实际规则效果与剧情回响：{detail.effect}对应两处剧情机会，须实际经历且当时仍具备行动条件。</p>
+    <p>用法与去处：{detail.effect}学会以后，仍要到了相应场合才可选用。</p>
     {detail.state==='available'&&detail.action&&<button type="button" className="art-learn" onClick={()=>onLearn(detail.action!)}>投入一点，学习{detail.title}</button>}
    </>:<p>选择或聚焦节点查看完整说明。勾形图标与双边框表示已学习；书页与朱色边框表示可学习；锁与虚线表示未解锁；叹号与加粗侧边表示受条件限制。</p>}
   </section>

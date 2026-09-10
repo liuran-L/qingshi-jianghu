@@ -6,6 +6,7 @@ export type BattleTactic='attack'|'guard'|'environment'|'retreat'|'bargain'|'pro
 export interface BattleAlly { id:string; level:number; style:string; trust:number; hostility:number; present:boolean; pledged:boolean; alive:boolean; injured:boolean }
 export interface BattleContext { martial:number; agility:number; eloquence:number; trained:number; fatigue:number; injury:string; health:number; qi:number; wanted:number; money:number; skills:string[]; allies:BattleAlly[]; evidence:string[] }
 export interface BattleRecord { event:string; tactic:BattleTactic; at:number; context:BattleContext; power:number; target:number; damage:number; cost:number; qiCost:number; win:boolean; outcome:string; lostEvidence:string[]; companionInjuries:string[]; relationChanges:{id:string;trust:number;favor:number}[]; healthAfter:number; injuryAfter:string }
+export interface BattlePresentation { title:string; hint:string; details:string }
 export interface BattleState { schema:1; records:BattleRecord[] }
 export const initialBattles=():BattleState=>({schema:1,records:[]});
 export const battles:Record<string,{title:string;cause:string;opponent:string;goal:string;target:number;present:string[];success:StoryEffect;failure:StoryEffect}>={
@@ -59,9 +60,54 @@ export function battleEnabled(s:GameState,event:string,tactic:BattleTactic) {
 }
 export function battleChoices(event:string):StoryChoice[] {
  const def=battles[event];if(!def||event==='finale') return [];
- return (Object.keys(tacticNames) as BattleTactic[]).flatMap(tactic=>[true,false].map(win=>({id:`battle-${tactic}-${win?'win':'loss'}`,label:'战斗结算记录',reply:`${def.title}：${tactic==='surrender'?'你交械认拘，后续行动停止。':tactic==='retreat'?'你脱离现场，未把撤离自己写成救下所有人。':win?`你们完成了${def.goal}。`:'你负伤退走，没能完成现场目标。'}`,effect:tactic==='surrender'||tactic==='retreat'?{}:win?def.success:def.failure})));
+ return (Object.keys(tacticNames) as BattleTactic[]).flatMap(tactic=>[true,false].map(win=>{
+  const firstActReply=event==='assassin'
+   ? tactic==='surrender'?'你放下兵刃，任人缚住双手。廊下的救援停在这里。'
+    :tactic==='retreat'?(win?'你翻过矮墙脱离县衙，身后的弦声仍在廊下震响。':'你挨了一记才越过矮墙。自己脱了身，书房与伤者却仍留在箭路里。')
+    :tactic==='bargain'?'银两落进对方手中，他们让开一条窄路。你独自离开，书房与伤者仍在身后。'
+    :win?'你们逼退伏击者，护着书房与门外伤者撤进内院。':'你带伤退出廊门，没能拦住射向书房的第二轮箭。'
+   :`${def.title}：${tactic==='surrender'?'你交械认拘，后续行动停止。':tactic==='retreat'?'你脱离现场，未把撤离自己写成救下所有人。':win?`你们完成了${def.goal}。`:'你负伤退走，没能完成现场目标。'}`;
+  const abandonsFirstActGoal=event==='assassin'&&['retreat','bargain','surrender'].includes(tactic);
+  return {id:`battle-${tactic}-${win?'win':'loss'}`,label:'战斗结算记录',reply:firstActReply,effect:abandonsFirstActGoal?{dead:['gu-qinghe']}:tactic==='surrender'||tactic==='retreat'?{}:win?def.success:def.failure};
+ }));
 }
 export function battleLabel(s:GameState,event:string,tactic:BattleTactic) {
  const p=battlePreview(s,event,tactic);
  return `${tacticNames[tactic]}：力量 ${p.power}/${p.target} · ${p.win?'可成':'会失手'} · 损血 ${p.damage} · 耗气 ${p.qiCost}${p.cost?` · ${p.cost}两`:''}${p.damage>=s.player.health?' · 致命！':''}${!p.win?' · 可能失证、追查或同伴负伤':''}`;
+}
+
+const firstActTacticTitles:Record<BattleTactic,string>={
+ attack:'抢先破开刀路', guard:'守住退路，先护身边的人', environment:'借廊柱与空隙突围',
+ retreat:'抽身离开', bargain:'付银换一条退路', proof:'当众举证，逼其让路', surrender:'放下兵刃',
+};
+const battleEvidenceNames:Record<string,string>={official:'县衙真档副本',transport:'漕运账副本',medicine:'药库出入记录',testament:'掌门遗嘱',witness:'幸存商旅证言'};
+const battleNpcNames:Record<string,string>={'gu-qinghe':'顾清河','shen-yanqiu':'沈砚秋'};
+
+/** 第一阶段冲突按钮的三层文案。只读取裁决预览，不改动存档。 */
+export function battlePresentation(s:GameState,event:string,tactic:BattleTactic):BattlePresentation {
+ const p=battlePreview(s,event,tactic), goal=battles[event].goal;
+ const hint:Record<BattleTactic,string>={
+  attack:`直取对手，争取${goal}；放弃稳守退路。`,
+  guard:`先守住${goal}；放弃追击对手。`,
+  environment:`借眼前地形完成${goal}；不与对手正面缠斗。`,
+  retreat:`只求自己脱身；放弃${goal}。`,
+  bargain:`当场付出${p.cost}两换自己脱身；放弃${goal}。`,
+  proof:`以手中材料逼对方让路；若压不住场面，${goal}便会失守。`,
+  surrender:`保住性命，放弃抵抗与${goal}；本程进入拘押结局。`,
+ };
+ const parts:string[]=[];
+ if(tactic==='bargain') parts.push(`用银 ${p.cost} 两`,'交易放行，自行脱身');
+ else if(tactic==='surrender') parts.push('放下兵刃','进入拘押结局');
+ else {
+  if(tactic==='retreat') parts.push(p.win?'可以脱身':'负伤脱身');
+  else parts.push(`力量 ${p.power} / 对阵 ${p.target}`,p.win?'足以完成当场目标':'不足以完成当场目标');
+  if(p.damage>0) parts.push(`气血 -${p.damage}${p.damage>=s.player.health?'，此举致命':''}`);
+  if(p.qiCost>0) parts.push(`真气 -${p.qiCost}`);
+  if(p.lostEvidence.length) parts.push(`失手会遗失：${p.lostEvidence.map(id=>battleEvidenceNames[id]??'随身材料').join('、')}`);
+  if(p.companionInjuries.length) parts.push('失手会使一名助阵同伴负伤');
+  const failure=battles[event].failure;
+  if(!p.win&&failure.wanted) parts.push('失手会招来更多追查');
+  if(!p.win&&failure.dead?.length) parts.push(`失手会使${failure.dead.map(id=>battleNpcNames[id]??'受护者').join('、')}遇害`);
+ }
+ return {title:firstActTacticTitles[tactic],hint:hint[tactic],details:parts.join(' · ')};
 }

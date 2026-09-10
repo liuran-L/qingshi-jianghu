@@ -82,7 +82,7 @@ void test('UI05 功法组件输出真实连线与键盘节点，聚焦展开说�
  const collect=(node:any):any[]=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(collect):[...(node.type==='button'?[node]:[]),...collect(node.props?.children)];
  collect(Component(props))[0].props.onFocus();
  const expanded=renderToStaticMarkup(Component(props));
- assert.match(expanded,/获得与成本/);assert.match(expanded,/六小时/);assert.match(expanded,/实际规则效果与剧情回响/);assert.match(expanded,/aria-expanded="true"/);
+ assert.match(expanded,/获得与成本/);assert.match(expanded,/六小时/);assert.match(expanded,/用法与去处/);assert.match(expanded,/aria-expanded="true"/);
  assert.equal(encodeSave(game),before);
 });
 

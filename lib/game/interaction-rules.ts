@@ -105,7 +105,7 @@ export function resolveInteraction(
     case 'challenge-search':
       return { ...base, timeCostMinutes: 8, discoveredFactIds: ['guard-search-threat'], npcStatePatch: { suspicion: maState.suspicion + 2, hostility: maState.hostility + 1, attitude: maState.attitude - 1 } };
     case 'offer-bribe':
-      return { ...base, timeCostMinutes: 7, moneyDelta: -2, gatePhase: 'cleared', gateAccess: true, dialogue: '“两两，换这一次不细查。进城后别说在我这里见过什么。”', narration: '他借着整理登记簿收走碎银，侧身让开。你清楚记得这次通行付出的代价。' };
+      return { ...base, timeCostMinutes: 7, moneyDelta: -2, gatePhase: 'cleared', gateAccess: true, dialogue: '“二两，换这一次不细查。进城后别说在我这里见过什么。”', narration: '他借登记簿遮住手，收走二两碎银，随即侧身让开城门。' };
     case 'present-gate-document':
       return { ...base, timeCostMinutes: 5, gatePhase: 'cleared', gateAccess: true, dialogue: '“文书能对上。登记过便进，出了差错仍要回来问话。”', narration: '差役核过印记和登记，将文书原样交回。' };
     case 'show-gate-fragment':
@@ -121,22 +121,22 @@ export function resolveInteraction(
       }
       return { ...base, timeCostMinutes: 8, gatePhase: 'cleared', gateAccess: true, npcStatePatch: { searchedPlayer: true }, dialogue: '“没查出违禁物。进去，别再给自己找事。”', narration: '行囊里的东西被粗粗翻过，湿黏的内衬没有拆开。他最终还是收回了铁尺。' };
     case 'inspect-wound':
-      return { ...base, timeCostMinutes: 7, discoveredClueIds: ['abnormal-wound'], narration: hasGrowthNode(state, 'medicine-diagnosis') ? '你辨出创缘受刃时受力一致，伤口周围的淤色并非普通跌撞所致；这只是更准确的观察，不能替代医者验伤。' : undefined };
+      return { ...base, timeCostMinutes: 7, discoveredClueIds: ['abnormal-wound'], narration: hasGrowthNode(state, 'medicine-diagnosis') ? '你辨出创缘平直，受力均匀，不像跌撞擦伤。那圈暗色究竟是什么，还得请医者拆布细看。' : undefined };
     case 'inspect-bag':
-      return { ...base, timeCostMinutes: 8, discoveredClueIds: ['ding17-fragment'], discoveredItemIds: ['ding17-fragment'], discoveredFactIds: ['baggage-watch-mark'], narration: '你在割开的夹层里摸到一张沾血的公文残片，只辨出“丁字十七”与半枚县衙火漆。更怪的是，行囊外带内侧多了一道新划的短痕，像给认得记号的人辨包用；你只能确认痕迹不旧，尚不知道是谁留下。' };
+      return { ...base, timeCostMinutes: 8, discoveredClueIds: ['ding17-fragment'], discoveredItemIds: ['ding17-fragment'], discoveredFactIds: ['baggage-watch-mark'], narration: '你在割开的夹层里摸到一张沾血的公文残片，只辨出“丁字十七”与半枚县衙火漆。行囊外带内侧还多了一道新划的短痕，像是留给认得记号的人辨包用；划痕很新，留下它的人却不在眼前。' };
     case 'inspect-fragment':
-      return { ...base, timeCostMinutes: 6, discoveredClueIds: ['black-scale-wax'], narration: '你把残片移到斜光下，辨出背面鱼鳞形黑蜡和一缕极淡的苦涩药味；它们只能说明纸张沾过这些东西，还不能指认经手者。' };
+      return { ...base, timeCostMinutes: 6, discoveredClueIds: ['black-scale-wax'], narration: '你把残片移到斜光下，背面有一小块鱼鳞形黑蜡，还带着极淡的苦涩药味。纸上没有留下经手人的姓名。' };
     case 'observe-gate':
-      return { ...base, timeCostMinutes: 8, discoveredFactIds: ['gate-selective-inspection', 'cart-mark'], narration: '普通商贩被逐个盘问，一辆油布货车却只停了一瞬。守门差役看了看车夫便挥手。你注意到车门铰链黏着鱼鳞形黑蜡，车夫右眉有疤。这些是亲见的特征，尚不能证明他们在运什么。' };
+      return { ...base, timeCostMinutes: 8, discoveredFactIds: ['gate-selective-inspection', 'cart-mark'], narration: '普通商贩被逐个盘问，一辆油布货车却只停了一瞬。守门差役看了看车夫便挥手。车门铰链黏着鱼鳞形黑蜡，车夫右眉有一道旧疤；油布下面装着什么，隔着车板看不见。' };
     case 'request-room':
       return { ...base, learnedNpcIdentity: '悦来客栈掌柜' };
     case 'rest-night':
-      if (state.economy.innCredit === 2) return { ...base, timeCostMinutes: 12 * 60, fatigueDelta: -75, healthDelta: 4, lodgingRecord: true, narration: '你用工钱牌抵掉一晚普通房钱。房簿仍按你登记的名字留下记录；工钱牌只此一次。' };
+      if (state.economy.innCredit === 2) return { ...base, timeCostMinutes: 12 * 60, fatigueDelta: -75, healthDelta: 4, lodgingRecord: true, narration: '你把工钱牌交给掌柜，抵了一晚普通客房。房簿照旧记着你登记的姓名，这块牌子也就此收回。' };
       if (state.player.money < 2) return { ...base, timeCostMinutes: 3 };
       return { ...base, timeCostMinutes: 12 * 60, moneyDelta: -2, fatigueDelta: -75, healthDelta: 4, lodgingRecord: true };
     case 'request-treatment':
       if (state.player.money < 3) return { ...base, timeCostMinutes: 5, learnedNpcIdentity: '回春堂坐堂医' };
-      return { ...base, timeCostMinutes: 35, discoveredClueIds: ['abnormal-wound'], discoveredFactIds: state.dayOne.cloth === 'keep' ? [] : ['doctor-wound-residue'], narration: state.dayOne.cloth === 'keep' ? '创缘整齐，是刃伤而非枯枝撕裂。布条交你自留，尚未作药性检验。' : '创缘整齐，是刃伤而非枯枝撕裂。留样检验已记录。', learnedNpcName: '沈砚秋', learnedNpcIdentity: '回春堂坐堂医', healthDelta: 15, fatigueDelta: -5, moneyDelta: -3, injuryAfter: '无', poisonAfter: '不明残毒' };
+      return { ...base, timeCostMinutes: 35, discoveredClueIds: ['abnormal-wound'], discoveredFactIds: state.dayOne.cloth === 'keep' ? [] : ['doctor-wound-residue'], narration: state.dayOne.cloth === 'keep' ? '创缘平直，是刃伤，不像枯枝撕裂。旧布条由你收回，药性尚未查验。' : '创缘平直，是刃伤，不像枯枝撕裂。沈砚秋把留样与所见写进病案。', learnedNpcName: '沈砚秋', learnedNpcIdentity: '回春堂坐堂医', healthDelta: 15, fatigueDelta: -5, moneyDelta: -3, injuryAfter: '无', poisonAfter: '不明残毒' };
     case 'ask-corpse':
       return { ...base, timeCostMinutes: 8, discoveredFactIds: ['clinic-corpse-details'], knownWorldEventIds: ['nameless-corpse'] };
     case 'compare-corpse-wound':
@@ -146,24 +146,24 @@ export function resolveInteraction(
         return { ...base, dialogue: '“你先前问过。到眼下，我还没听到新的可信消息。”', narration: '你确认这次重问没有新的可信消息；旧传闻不会被重复记成新发现。' };
       }
       return state.triggeredWorldEventIds.includes('nameless-corpse')
-        ? { ...base, discoveredLocationIds: ['clinic'], discoveredFactIds: ['inn-corpse-rumor'], knownWorldEventIds: ['nameless-corpse'], dialogue: '“今晨河边抬走一个无名客，送去了回春堂。旁的说法我没亲眼见，不替人添。”', narration: '你记下酒客转述的回春堂去向，不把传话当作验尸结论。' }
-        : { ...base, dialogue: '“眼下只听说城门查得比往日严，别的还没有能当真的新消息。”', narration: '这次打听没有得到可核的新线索；你明确知道目前只有一条未证实的城门风声。' };
+        ? { ...base, discoveredLocationIds: ['clinic'], discoveredFactIds: ['inn-corpse-rumor'], knownWorldEventIds: ['nameless-corpse'], dialogue: '“今晨河边抬走一个无名客，送去了回春堂。旁的我没亲眼见，不替人添。”', narration: '酒客只说得清去处：那副担架进了回春堂。死者的伤与姓名，还得去医馆问。' }
+        : { ...base, dialogue: '“眼下只听说城门查得比往日严，别的还没有能当真的新消息。”', narration: '几桌闲谈兜了一圈，仍只有城门严查这一句彼此对得上。' };
     case 'ask-name':
       return request.npcId === 'shen-yanqiu' ? { ...base, learnedNpcName: '沈砚秋', learnedNpcIdentity: '回春堂坐堂医' } : { ...base, npcLearnedFact: NAME_REFUSED };
     case 'observe-inn':
       return state.playerKnownFactIds.includes('inn-arrival-inquiry') ? base : { ...base, discoveredFactIds: ['inn-arrival-inquiry'], narration: '你留意门边湿伞和柜上的水迹。伙计提到天未亮时有人先来问过：今日是否会有一个带伤、背湿行囊的外乡客投店。来人没留姓名，只说午后便换地方。' };
     case 'observe-clinic':
-      return { ...base, discoveredFactIds: ['clinic-routine'], narration: '你看见药柜领用、伤者来处和留样各记在不同簿页。沈砚秋只在自己验过的项目后签名，传闻不会自动写进病案。' };
+      return { ...base, discoveredFactIds: ['clinic-routine'], narration: '药柜领用、伤者来处与留样分记在三本簿上。沈砚秋只在亲手验过的伤处签名，街谈巷议没有落进病案。' };
     case 'observe-scene':
       return state.locationId === 'dock'
-        ? { ...base, discoveredFactIds: ['dock-salt-movement'], narration: '你沿岸看了一圈：脚夫按船号换班，空转运车先停在坡上，账房只认盖过验印的货签。几人口中的“丁字十七”明确指向一条待靠岸的官盐船，并非人名；货物是否有异仍待核验。' }
-        : { ...base, narration: '你逐一看过出入口、脚印和新近挪动的物件，没有发现足以单独定论的新痕迹。时间确实过去，眼前也没有被你漏看的明确入口。' };
+        ? { ...base, discoveredFactIds: ['dock-salt-movement'], narration: '你沿岸看了一圈：脚夫按船号换班，空转运车先停在坡上，账房只认盖过验印的货签。几人口中的“丁字十七”都指向一条待靠岸的官盐船；油布盖着货，你从岸上看不见里面。' }
+        : { ...base, narration: '你逐一看过出入口、脚印和新近挪动的物件。风吹散了浮尘，除此之外，没有新的痕迹留下。' };
     case 'ask-local-news':
       return state.locationId === 'dock'
-        ? { ...base, discoveredFactIds: ['dock-salt-movement'], narration: '你没有锁定某个人搭话，只听岸边不同位置的工头报号、脚夫应班、车夫问验印。由这些现场动静可以确认：“丁字十七”是将靠岸的盐船编号，码头正为交接调人调车；谁在其中做手脚仍无从判断。' }
-        : { ...base, dialogue: request.npcId ? '“近况都在眼前。没有亲见的事，我不替旁人作保。”' : undefined, narration: '你得到的只有当地人愿意公开说的近况，没有把含混暗示记成事实。' };
+        ? { ...base, discoveredFactIds: ['dock-salt-movement'], narration: '岸边工头报号，脚夫应班，车夫隔着坡问验印。“丁字十七”是一条将靠岸的盐船，码头正调人调车等它交接；忙碌的人群里，看不出谁另有心思。' }
+        : { ...base, dialogue: request.npcId ? '“近况都在眼前。没亲见的事，我不替旁人作保。”' : undefined, narration: '当地人只说了街面上都看得见的近况，含混处也没人肯多添一句。' };
     case 'leave-conversation':
-      return { ...base, narration: '你收住话头，退到一旁重新观察局面。五分钟过去，没有立场、钱物或线索因此凭空改变。' };
+      return { ...base, narration: '你收住话头，退到一旁。五分钟过去，眼前的人仍各忙各的。' };
     default:
       return null;
   }

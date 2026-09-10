@@ -97,6 +97,7 @@ void test('Android 提供安装事件时调用浏览器原生确认', async () =
   assert.equal(promptCalls, 1);
   assert.equal(outcome, 'dismissed');
   assert.equal(canRequestNativeInstall('Mozilla/5.0 (Linux; Android 15) Chrome/140 Mobile'), true);
+  assert.equal(canRequestNativeInstall('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Edg/140'), true);
   const page = text('app/page.tsx');
   assert.match(page, /beforeinstallprompt/);
   assert.match(page, /requestNativeInstall\(nativeInstallPrompt\)/);
@@ -110,6 +111,7 @@ void test('Android 没有安装事件时提供非空菜单指引', () => {
 
 void test('微信与 iPhone/iPad 使用各自的安全指引', () => {
   assert.equal(canRequestNativeInstall('Mozilla/5.0 (Linux; Android 14) MicroMessenger/8.0'), false);
+  assert.equal(canRequestNativeInstall('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Mobile Safari/604.1'), false);
   assert.equal(installGuidance('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) MicroMessenger/8.0'), '请点击右上角‘⋯’，选择在浏览器打开后，再添加到主屏幕。');
   assert.equal(installGuidance('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Version/18.0 Mobile Safari/604.1'), '点击分享按钮，再选择‘添加到主屏幕’。');
   assert.equal(installGuidance('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) Mobile/15E148 Safari/604.1'), '点击分享按钮，再选择‘添加到主屏幕’。');
@@ -124,5 +126,16 @@ void test('QQ 浏览器与夸克使用通用菜单降级提示', () => {
     assert.match(guidance, new RegExp(browser));
     assert.match(guidance, /浏览器菜单/);
     assert.match(guidance, /添加到桌面／添加到主屏幕／安装应用/);
+    assert.match(guidance, /系统设置[\s\S]*创建桌面快捷方式/);
   }
+});
+
+void test('手机浏览器在应用代码加载前派发安装事件仍可被接管', () => {
+  const html = text('index.desktop.html');
+  assert.ok(html.indexOf('beforeinstallprompt') < html.indexOf('rel="manifest"'));
+  assert.match(html, /__qingshiInstallPrompt/);
+  assert.match(html, /qingshi-installprompt-ready/);
+  const page = text('app/page.tsx');
+  assert.match(page, /installWindow\.__qingshiInstallPrompt/);
+  assert.match(page, /qingshi-installprompt-ready/);
 });

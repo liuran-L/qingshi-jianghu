@@ -17,15 +17,15 @@ export const locations: LocationDefinition[] = [
   { id: 'gate', name: '青石县城门', shortName: '城门', description: '雨云压着斑驳城楼，差役正逐一盘问进城客商。', arrival: '你踏过泥泞，来到青石县城门。', weather: '阴雨将至', npcIds: ['ma-sandao'], mapPosition: { x: 18, y: 48 } },
   { id: 'inn', name: '悦来客栈', shortName: '客栈', description: '大堂酒气温热，南来北往的耳目都藏在碗沿之后。', arrival: '你推开悦来客栈的木门，喧闹声顿了一瞬。', weather: '檐雨淅沥', npcIds: ['su-wantang', 'lu-guanlan'], mapPosition: { x: 42, y: 34 } },
   { id: 'yamen', name: '县衙', shortName: '县衙', description: '朱漆剥落的公门前立着两尊石兽，鸣冤鼓积满雨水。', arrival: '你来到县衙前，值守衙役隔着雨幕打量你。', weather: '天色沉暗', npcIds: ['gu-qinghe', 'ning-buping'], mapPosition: { x: 63, y: 25 } },
-  { id: 'dock', name: '河岸渡口', shortName: '渡口', description: '夜色压住河湾，只有几条小船在芦苇外静候。这里不是可随意探查的码头。', arrival: '河腥气扑面而来，你来到约定的河岸渡口。', weather: '河风渐紧', npcIds: ['qiao-wu'], mapPosition: { x: 78, y: 67 } },
+  { id: 'dock', name: '河岸渡口', shortName: '渡口', description: '夜色压住河湾，几条小船泊在芦苇外。栈桥上有人按船号放行，闲人近不得水边。', arrival: '河腥气迎面扑来。你沿芦苇荡走到渡口，缆绳正在风里绷响。', weather: '河风渐紧', npcIds: ['qiao-wu'], mapPosition: { x: 78, y: 67 } },
   { id: 'temple', name: '城外破庙', shortName: '破庙', description: '半截山门埋在荒草里，无头泥像前留着新鲜火灰。', arrival: '你绕出县城，在暮色前赶到那座破庙。', weather: '乌云压山', npcIds: ['yue-hansheng'], mapPosition: { x: 25, y: 80 } },
   { id: 'clinic', name: '回春堂医馆', shortName: '医馆', description: '药香压住了血腥气，柜上铜秤仍在轻轻摆动。', arrival: '你掀帘走进回春堂，满室药香令人稍安。', weather: '雨打药旗', npcIds: ['shen-yanqiu'], mapPosition: { x: 56, y: 55 } },
 ];
 
 export const clues: ClueDefinition[] = [
-  { id: 'attack-phrase', title: '“丁字十七”', description: '昏沉中，你听见袭击者反复喊着“找丁字十七”。你还不能确定它指的是人、物还是编号。' },
+  { id: 'attack-phrase', title: '“丁字十七”', description: '昏沉中，你听见袭击者反复喊着“找丁字十七”。那是人、物，还是某个编号，眼下无人作答。' },
   { id: 'abnormal-wound', title: '异常伤口', description: '伤口不深，却迟迟不能止血，边缘还泛着不自然的暗色。' },
-  { id: 'ding17-fragment', title: '带编号的公文残片', description: '一张沾血的旧公文残片，只能辨认出“丁字十七”和半枚县衙火漆，具体用途尚不明确。' },
+  { id: 'ding17-fragment', title: '带编号的公文残片', description: '一张沾血的旧公文残片，上面只剩“丁字十七”和半枚县衙火漆。其余字迹已被血水洇开。' },
   { id: 'black-scale-wax', title: '黑鳞蜡痕', description: '残片背面黏着鱼鳞形的黑蜡，并带有极淡的苦涩药味。' },
   { id: 'matching-corpse-wound', title: '相似的死者伤口', description: '第二日发现的无名尸体带有相似伤口，说明路边袭击并非孤立事件。' },
 ];
@@ -45,7 +45,7 @@ export const knownFacts: KnownFactDefinition[] = [
   { id: 'ma-private-bribe-signal', text: '守门差役可能接受两两银子的私下打点，但不肯在人前留下把柄。' },
   { id: 'ma-cart-deflection', text: '守门差役以“漕运关防”为由回避货车免检之事。' },
   { id: 'ma-ding17-reaction', text: '守门差役听见“丁字十七”后向城内使了个眼色，用意尚不清楚。' },
-  { id: 'doctor-wound-residue', text: '沈砚秋在你的伤口残留物中辨出一股异常苦味，但还不能断定具体毒物。' },
+  { id: 'doctor-wound-residue', text: '沈砚秋在伤口残留物里辨出一股异常苦味，一时还叫不出是哪种药。' },
   { id: 'clinic-corpse-details', text: '河边无名尸的创口很浅，却因持续失血而死，衣物上没有可供辨认身份的物件。' },
   { id: 'corpse-wound-link', text: '第二日河边无名尸与自己的伤口可能都接触过乌鳞散。' },
   { id: 'inn-corpse-rumor', text: '今晨河边发现一具无名尸，后来被送往回春堂。' },
@@ -54,19 +54,19 @@ export const knownFacts: KnownFactDefinition[] = [
   { id: 'day-end-watch-rumor', text: '换班脚夫听见有人打听一个今日进城的带伤外乡客；问话者明早会去码头改搭别船。' },
   { id: 'next-morning-moving-lead', text: '现有迹象指向同一件事：有人预先留意你的到来，并会在次日更换接头的人、船或落脚处。' },
   { id: 'dock-salt-movement', text: '渡口脚夫按官盐船号换班，空车先候在岸上；“丁字十七”在这里是船货编号，不是人名。' },
-  { id: 'clinic-routine', text: '回春堂把伤者来处、药材领用和留样分别登记；病案只能证明医者实际验过的伤。' },
+  { id: 'clinic-routine', text: '回春堂把伤者来处、药材领用和留样分簿登记；沈砚秋只在自己验过的伤处落笔。' },
   { id: 'day2-public-notice', text: '县衙贴出告示：近日盐路与渡口交接将加验船号、路引和经手签押，异常已牵涉官面秩序。' },
   { id: 'public-yamen-role', text: '县衙公开负责路引、官盐文书、封验与城门秩序；宁不平等差役只能按可核记录办事。' },
   { id: 'public-river-gang-role', text: '漕帮公开掌握河道船位、码头脚夫和货物交接；乔五是河上脚夫会看脸色的人。' },
   { id: 'public-qingyue-role', text: '青岳门是本地公开活动的武林门派，门人会为山门声名、同门安危和掌门之事出面。' },
-  { id: 'act-one-surface-conflict', text: '眼下公开可见的冲突是：县衙要维持盐路与城门秩序，漕帮要守住河运生计和地盘，青岳门则因门人卷入而介入；三方说法尚不能证明幕后责任。' },
-  { id: 'act-one-involvement', text: '荒道上有人喊“丁字十七”，又有人提前辨认带伤外乡客与行囊；第三日同号船成为争执中心，各方因此把你当作能接上这段时序的见证人。' },
+  { id: 'act-one-surface-conflict', text: '县衙要守盐路文书与城门秩序，漕帮要守河运生计和码头地盘，青岳门则因门人卷入来到县城。三方各说各的，眼下谁也没有拿出幕后主使的姓名。' },
+  { id: 'act-one-involvement', text: '荒道上有人喊“丁字十七”，又有人提前打听带伤外乡客与湿行囊；第三日，同号盐船靠岸。各方都知道你曾在这几处露面，也可能见过能接起前后的人和物。' },
 ];
 
 export const inventoryItems: InventoryItemDefinition[] = [
   { id: 'blood-cloth', name: '自留血布', description: '完整处理伤口后自留的原布条，尚未授权医者检验。' },
   { id: 'temporary-stay-permit', name: '三日暂留凭条', description: '宁不平签发的暂留凭条，有效期限记在结案记录中；不是永久路引。' },
-  { id: 'evidence-receipt', name: '证物交存收据', description: '盐引残片、病案副本与核验材料交存县衙的凭据，不代表案中所有秘密已经查清。' },
+  { id: 'evidence-receipt', name: '证物交存收据', description: '县衙收下盐引残片、病案副本与核验材料后开出的收据。纸上只列交存之物与经手人。' },
   { id: 'ding17-fragment', name: '带编号的公文残片', description: '藏在行囊夹层中的沾血公文。它可能招来比银钱更危险的目光。' },
 ];
 

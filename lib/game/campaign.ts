@@ -1,4 +1,4 @@
-import { battles, battleContext, battleEnabled, battlePreview, battleLabel, judgeBattle, tacticNames, type BattleTactic } from './battle.ts';
+import { battles, battleContext, battleEnabled, battlePreview, battleLabel, battlePresentation, judgeBattle, tacticNames, type BattleTactic } from './battle.ts';
 import { artActions, settleArtAction, hasArt, artTrainingBlock } from './arts.ts';
 import { totalArtPoints } from './arts-content.ts';
 import type { GameState, LimitedActionId, DialogueLine } from './types.ts';
@@ -34,7 +34,14 @@ const campaignNameDisclosure: Record<string, string> = {
   'lu-guanlan': '送来的名帖写着“陆观澜”，负剑客接过后没有否认。',
   'gu-qinghe': '书吏当面称他“顾清河大人”，姓名与官署名册相合。',
 };
-const action = (id: string, label: string, disabledReason?: string): LimitedAction => ({ id: `journey-${id}`, label, input: label, mode: 'action', ...(disabledReason ? { disabledReason } : {}) });
+const action = (id: string, label: string, disabledReason?: string, hint?: string, details?: string): LimitedAction => ({
+  id: `journey-${id}`, label, input: label, mode: 'action',
+  ...(disabledReason ? { disabledReason } : {}), ...(hint ? { hint } : {}), ...(details ? { details } : {}),
+});
+const firstActAttendLabels:Record<string,string>={
+  temple:'去城外破庙，看看药渣与脚印', assassin:'应县衙告示，进廊作证', inheritance:'回客栈看青岳门讣帖',
+  fire:'赶去码头木账房', identity:'到城门复核姓名',
+};
 const stamp = (s: GameState, id: string, text: string, money = 0, debt = 0) => {
   s.campaign.journal.push({ at: s.worldMinutes, action: id, money, debt, text });
   s.logs = [...s.logs, { id: `journey-log:${s.worldMinutes}:${s.logs.length}`, atMinutes: s.worldMinutes, type: 'system', text }];
@@ -124,18 +131,24 @@ export function campaignActions(s: GameState): LimitedAction[] {
   }
   if (c.activeEvent) {
     const event = storyEvents.find(e => e.id === c.activeEvent)!;
-    return [...(battles[event.id] ? (Object.keys(tacticNames) as BattleTactic[]).filter(t=>battleEnabled(s,event.id,t)).map(t=>action(`battle:${event.id}:${t}`,battleLabel(s,event.id,t))) : []), ...event.choices.filter(choice => !choice.id.startsWith('battle-') && canChooseStory(s, choice)).map(choice => action(`choose:${event.id}:${choice.id}`, choice.label)), action(`leave:${event.id}`, '暂离现场，承担缺席后果')];
+    const battleActions = battles[event.id] ? (Object.keys(tacticNames) as BattleTactic[]).filter(t=>battleEnabled(s,event.id,t)).map(t=>{
+      if(event.day<=8){const view=battlePresentation(s,event.id,t);return action(`battle:${event.id}:${t}`,view.title,undefined,view.hint,view.details);}
+      return action(`battle:${event.id}:${t}`,battleLabel(s,event.id,t));
+    }) : [];
+    return [...battleActions, ...event.choices.filter(choice => !choice.id.startsWith('battle-') && canChooseStory(s, choice)).map(choice => action(`choose:${event.id}:${choice.id}`, choice.label, undefined, event.day<=8 ? choice.hint : undefined)), action(`leave:${event.id}`, event.day<=8?'离开现场':'暂离现场，承担缺席后果', undefined, event.day<=8?'你一走，本次现场不会等你。':undefined)];
   }
   if (c.finale) return finaleActions(s);
   const options: LimitedAction[] = [...artActions(s)];
   const event = upcomingEvent(s);
+  const eventIndex = event ? storyEvents.indexOf(event) : -1;
+  const openEventDeadline = event && s.worldMinutes >= dayAt(s, event.day) ? dayAt(s, storyEvents[eventIndex + 1]?.day ?? 58) : null;
   const prelude = event && firstActPreludes.find(item => item.eventId === event.id);
   if (event && prelude && s.worldMinutes >= dayAt(s, event.day - 1) && s.worldMinutes < dayAt(s, event.day) && !c.journal.some(entry => entry.action === `scout:${event.id}`)) {
     const tooLate = s.worldMinutes + prelude.minutes >= dayAt(s, event.day);
     const reason = tooLate ? '距事件窗口太近，已来不及完成这次布置。' : s.player.money < prelude.money ? `需${prelude.money}两，当前只有${s.player.money}两。` : undefined;
-    options.push(action(`scout:${event.id}`, prelude.label, reason));
+    options.push(action(`scout:${event.id}`, prelude.label, reason, prelude.hint));
   }
-  if (event && s.worldMinutes >= dayAt(s, event.day)) options.push(action(`attend:${event.id}`, `前往 · ${event.title}（往返与交涉另计时）`));
+  if (event && s.worldMinutes >= dayAt(s, event.day)) options.push(action(`attend:${event.id}`, event.day<=8 ? firstActAttendLabels[event.id] : `前往 · ${event.title}（往返与交涉另计时）`));
   if (s.worldMinutes >= dayAt(s, 58)) {
     for (const route of lifeRoutes) if (!routeQualification(s, route)) options.push(action(`finale:${route}`, `为此生作结 · ${routeNames[route]}`));
     options.push(action('retire', '留在城中退隐，接受尚未解决的旧事'));
@@ -170,7 +183,20 @@ export function campaignActions(s: GameState): LimitedAction[] {
   if (s.economy.medicalDebt && s.player.money >= 3) options.push(action('medical-debt', '补清序章三两诊金'));
   if (Object.values(c.resolved).some(r => !r.witnessed)) options.push(action('rumors', '向过路行旅打听已发生的消息（一刻钟）'));
   options.push(action('wait', event ? `安顿生活，等到下一封来信（最迟第${event.day}日；食宿每日一两）` : '安顿生活，等到清算之日（食宿每日一两）'));
-  return options;
+  if (openEventDeadline === null) return options;
+  const actionMinutes: Record<string, number> = {
+    'journey-amends': 1440, 'journey-care': 60, 'journey-rest': 480,
+    'journey-work:xia': 360, 'journey-work:trade': 360, 'journey-work:shadow': 360, 'journey-work:office': 360, 'journey-work:healer': 360,
+    'journey-arts:mentor:step': 60, 'journey-arts:mentor:medicine': 60, 'journey-arts:mentor:martial': 60, 'journey-arts:mentor:speech': 60,
+    'journey-arts:train:step': 240, 'journey-arts:train:medicine': 240, 'journey-arts:train:martial': 240, 'journey-arts:train:speech': 240,
+    'journey-teach:step': 60, 'journey-teach:medicine': 60, 'journey-lesson:step': 360, 'journey-lesson:medicine': 360,
+    'journey-bandage': 15, 'journey-rumors': 15,
+    [`journey-attend:${event!.id}`]: 60,
+  };
+  return options.map(item => {
+    const forfeits = item.id === 'journey-wait' || actionMinutes[item.id] !== undefined && s.worldMinutes + actionMinutes[item.id] >= openEventDeadline;
+    return forfeits ? { ...item, hint: item.hint ?? '这项行动会越过眼前这次机会的时限，现场不会等你。' } : item;
+  });
 }
 export const stealPreview = (s: GameState) => ({ win: s.player.abilities.agility + s.campaign.trained.shadow + (s.growth.step.nodes.includes('step-foundation') ? 1 : 0) >= 3 + Math.floor(s.campaign.wanted / 2) });
 export const patron: Record<LifeRoute, string> = { xia: 'lu-guanlan', trade: 'su-wantang', shadow: 'qiao-wu', office: 'ning-buping', healer: 'shen-yanqiu' };
@@ -225,8 +251,8 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
     next.dayOne = { ...next.dayOne, menu: false };
     next.dayTwo = { ...next.dayTwo, menu: false };
     next.growth = { ...next.growth, menu: false };
-    next = tell(next, next.campaign.origin === 'night-ferry' ? '小渡把你送到下游，并没有替你选好此后的日子。你沿河谋生，也可循来信回县；离开过青石这件事仍留在经历里。' : next.campaign.origin === 'sealed-salt' ? '盐引已经交存，收据仍在你手里。新来的差役接过案卷：“封住一辆车，封不住整条河。”三日暂留不是永久身份，此后仍须补验。' : '第三日的船已离岸。已经交出的纸不会回来，错过的查验也不会重开。你仍可沿盐路生活、查证，或到时候真的远走。');
-    next = tell(next, '城中贴出破庙避雨、码头招工与邻府通行的公示。地图上记下这些确实可去的地方。今后差事每日一回；来信有期限，谋生和修习会占去日子。');
+    next = tell(next, next.campaign.origin === 'night-ferry' ? '小渡在下游靠岸。你可以沿河谋生，也可以循着来信回县；离开过青石这件事，仍留在旁人记忆里。' : next.campaign.origin === 'sealed-salt' ? '盐引已经交存，收据仍在手里。接卷的差役翻过封条：“扣住一辆车，河上的船可还多着。”三日暂留期内，你还得补验身份。' : '第三日的船已经离岸，交出去的纸没有回来，错过的封验也已散场。沿盐路仍有活路，旧痕迹也仍能追。');
+    next = tell(next, '这几日，往来人把零碎消息带进城：药铺伙计在破庙外见过新药渣，码头仍招短工，邻府商队也在问路。差事过日便揭，来信也有时辰；你若谋生、治伤或练功，日头一样会往前走。');
     next.knownLocationIds = ['gate', 'inn', 'clinic', 'dock', 'temple', 'yamen'];
     next.selectedNpcId = null;
     next = settleCampaign(next);
@@ -270,7 +296,7 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       if (prelude) next = tell(next, prelude.aftermath);
       if (eventId === 'assassin' && option?.effect.flags?.includes('gu-safe')) {
         next.npcKnowledge = { ...next.npcKnowledge, 'gu-qinghe': { ...next.npcKnowledge['gu-qinghe'], observed: true, matched: true, knownName: '顾清河', knownIdentity: '青石县令' } };
-        next = tell(next, '顾清河。今日蒙你出手，记在我名下。至于案子，还是得看证据，不能拿一条救命之恩判旁人的死罪。', '顾清河', 'npc', 'gu-qinghe');
+        next = tell(next, '“顾清河。今日蒙你出手，这份情我记着。案卷里该写谁的名字，还得看谁留下了证据。”', '顾清河', 'npc', 'gu-qinghe');
       }
     }
   } else if (aid.startsWith('battle:')) {
@@ -289,7 +315,7 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       next.campaign.lastWorkDay = workDay;
       gain(next, route);
       let wage = route === 'trade' ? professional ? 8 + Math.min(4, next.campaign.trained.trade) : 5 : route === 'xia' ? 4 : route === 'shadow' ? 6 : route === 'office' && next.player.hasRoadPass && next.campaign.scores.office >= 3 ? 6 : 3;
-      let text = { xia: '你把乡民送到渡口，按约收了护送工钱。刀没有出鞘，这一趟也算走完。', trade: '你核对货重、运价与交接人，钱款当面结清。账上多一笔收入，也多一个愿意再托货的人。', shadow: '你从恶霸私库带出碎银，夜路留下新风声。江湖记得你敢取，官府记得有人报失。', office: '你把仓数逐一抄验，未拿疑点冒充查实。公门付了这次差事的钱，日后也能查到你的签押。', healer: '你分药、煎汤、照料病人，医者复核后付了工钱。没有独自开方，更没有凭空治好一场大疫。' }[route];
+      let text = { xia: '你把乡民送到渡口，按约收了护送工钱。刀没有出鞘，这一趟也算走完。', trade: '你核对货重、运价与交接人，钱款当面结清。账上多一笔收入，也多一个愿意再托货的人。', shadow: '你从恶霸私库带出碎银，夜路留下新风声。江湖记得你敢取，官府记得有人报失。', office: '你把仓数逐一抄验，未拿疑点冒充查实。公门付了这次差事的钱，日后也能查到你的签押。', healer: '你照药签分药、煎汤，又替几名病人换水。坐堂医逐一验过，才把三两工钱交给你。' }[route];
       if (route === 'shadow') {
         next.campaign.wanted = Math.min(10, next.campaign.wanted + (stealing.win ? 1 : 2));
         if (!stealing.win) { wage = 0; next.player.health = Math.max(0, next.player.health - 12); text = '你被守夜人截住，失手退走。没取到银钱，气血损失十二，追查增加二级；轻功与旧风声决定了这次失败。'; }
@@ -313,7 +339,7 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
     }
     if (!next.campaign.ending) {
       next = settleArtAction(next, id);
-      next = tell(next, aid.startsWith('arts:learn:') ? '你把一枚点数落实在这门手法上。此后的相关处境会出现运用选项，由你决定是否使用。' : '导师按你实际做过的事逐项纠正，今日的练习记入成长账本。相同指点不能反复领取。');
+      next = tell(next, aid.startsWith('arts:learn:') ? '你把心力落在这门手法上。往后遇到合适处境，自可决定是否使用。' : '导师照着你做过的动作逐一纠正，今日这番练习也记进了成长账。');
     }
   } else if (aid.startsWith('teach:')) {
     const tree = aid.split(':')[1] as 'step' | 'medicine';
@@ -322,7 +348,7 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       const old = next.growth[tree];
       next.growth = { ...next.growth, [tree]: { ...old, unlocked:true, unlockedAt:old.unlockedAt??next.worldMinutes, pointAwardedAt:next.worldMinutes, availablePoints:1 } };
       next.campaign.lastTrainDay=campaignDay(next);
-      next=tell(next, '你把此前实际做过的动作重做一遍，导师当面纠正。第一枚技能点来自这次指点，不收银两，也不要求额外好感。');
+      next=tell(next, '你把先前做过的动作重练一遍，导师当面纠正。这一回不收银两，只看你肯不肯沉下心。');
     }
   } else if (aid.startsWith('lesson:')) {
     const tree = aid.split(':')[1] as 'step' | 'medicine';
@@ -393,7 +419,7 @@ export function applyCampaignAction(state: GameState, id: LimitedActionId): Game
       if (!result.witnessed) {
         const event = storyEvents.find(e => e.id === eventId)!;
         const prelude = firstActPreludes.find(item => item.eventId === eventId);
-        next = tell(next, `行旅带来的消息 · ${event.title}：${prelude?.recoverySource ?? result.text}`);
+        next = tell(next, prelude ? `后来有人带来${event.title}的消息：${prelude.recoverySource}` : `行旅带来的消息 · ${event.title}：${result.text}`);
         if (prelude) next = tell(next, prelude.aftermath);
         result.witnessed = true;
       }
@@ -426,7 +452,7 @@ export function observeCampaignAftermath(state: GameState): GameState {
   if (!prelude) return state;
   const next = fresh(state);
   next.campaign.resolved[prelude.eventId].witnessed = true;
-  return tell(tell(next, `你在事发地点补看到的痕迹：${prelude.recoverySource}`), prelude.aftermath);
+  return tell(tell(next, `你回到旧地，又看见这些痕迹：${prelude.recoverySource}`), prelude.aftermath);
 }
 
 const finaleOpening: Record<LifeRoute, string> = {
@@ -529,8 +555,19 @@ function performBattle(s:GameState,event:string,tactic:BattleTactic):GameState {
     next.campaign.finaleStep=1;
   }
   next.campaign.evidence=next.campaign.evidence.filter(id=>!verdict.lostEvidence.includes(id));
-  next=tell(next,`${battles[event].title} · ${verdict.outcome}。己方力量${verdict.power}，对方压力${verdict.target}；损血${verdict.damage}、耗气${verdict.qiCost}、用银${verdict.cost}。${verdict.lostEvidence.length?'遗失随身材料：'+verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')+'。':''}${verdict.companionInjuries.length?'同伴为断后负伤，之后助阵力量降低。':''}${context.allies.map(a=>a.style).join('、')}`);
-  if(!next.player.health) {next.player.alive=false;next.player.deathCause=`${battles[event].title}中气血耗尽：力量${verdict.power}/${verdict.target}，战前已明示致命风险，损血${verdict.damage}。`;return endLife(next,'dead');}
+  if(event==='assassin') {
+    const changes:string[]=[];
+    if(!['bargain','surrender'].includes(tactic)) changes.push(`力量 ${verdict.power} / 对阵 ${verdict.target}`);
+    if(verdict.damage>0) changes.push(`气血 -${verdict.damage}`);
+    if(verdict.qiCost>0) changes.push(`真气 -${verdict.qiCost}`);
+    if(verdict.cost>0) changes.push(`用银 ${verdict.cost} 两`);
+    if(verdict.lostEvidence.length) changes.push(`遗失：${verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')}`);
+    if(verdict.companionInjuries.length) changes.push('一名助阵同伴负伤');
+    next=tell(next,`${battles[event].title} · ${verdict.outcome}${changes.length?`。${changes.join(' · ')}`:''}。`);
+  } else {
+    next=tell(next,`${battles[event].title} · ${verdict.outcome}。己方力量${verdict.power}，对方压力${verdict.target}；损血${verdict.damage}、耗气${verdict.qiCost}、用银${verdict.cost}。${verdict.lostEvidence.length?'遗失随身材料：'+verdict.lostEvidence.map(id=>evidenceNames[id] ?? '随身材料').join('、')+'。':''}${verdict.companionInjuries.length?'同伴为断后负伤，之后助阵力量降低。':''}${context.allies.map(a=>a.style).join('、')}`);
+  }
+  if(!next.player.health) {next.player.alive=false;next.player.deathCause=event==='assassin'?`${battles[event].title}中受创过重，气血耗尽。`:`${battles[event].title}中气血耗尽：力量${verdict.power}/${verdict.target}，战前已明示致命风险，损血${verdict.damage}。`;return endLife(next,'dead');}
   if(tactic==='surrender') return endLife(next,'prison');
   return next;
 }

@@ -55,7 +55,7 @@ void test('G03 医馆实际互动解锁医术；辨伤和包扎不免费治疗�
   const arrived = movePlayer(await click(s, 'close-growth'), 'gate');
   const observation = { ...arrived, knownClueIds: arrived.knownClueIds.filter((id) => id !== 'abnormal-wound') };
   const inspected = await click(observation, 'inspect-wound');
-  assert.ok(inspected.dialogue.at(-1)?.text.includes('更准确的观察'));
+  assert.match(inspected.dialogue.at(-1)?.text ?? '', /创缘平直|不像跌撞/);
 });
 
 void test('G04 伪造点数、越过前置、冻结、死亡或拘押成长菜单均被拒绝；旧档补默认', async () => {

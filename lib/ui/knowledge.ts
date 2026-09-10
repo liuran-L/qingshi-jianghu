@@ -22,7 +22,7 @@ function journalQuestions(s: GameState): KnowledgeEntry[] {
  const entries: KnowledgeEntry[] = [];
  if (['baggage-watch-mark','inn-arrival-inquiry','day-end-watch-rumor','next-morning-moving-lead'].some(id=>s.playerKnownFactIds.includes(id as KnownFactId))) entries.push({id:'question-watcher',title:'谁在关注你的到来？',detail:'已知有人提前辨认带伤外乡客或行囊；留下记号的人、打听者及其目的仍待查证。'});
  if (s.knownClueIds.includes('attack-phrase') || s.playerKnownFactIds.includes('dock-salt-movement')) entries.push({id:'question-ding17',title:'“丁字十七”究竟牵到哪一段？',detail:'它已可与船货编号相联系，但荒道呼喊、残片来路和经手者之间仍缺少可核环节。'});
- if (s.playerKnownFactIds.includes('act-one-surface-conflict')) entries.push({id:'question-three-sides',title:'三方哪些说法能够互证？',detail:'县衙、漕帮与青岳门的公开身份和表面冲突已经可见；具体罪责、暗中交易、背叛与幕后责任仍不能写成答案。'});
+ if (s.playerKnownFactIds.includes('act-one-surface-conflict')) entries.push({id:'question-three-sides',title:'三方哪些说法对得上？',detail:'县衙守文书与城门，漕帮管船位与脚夫，青岳门因同门之事入城。谁在暗处使唤人，眼下还没有姓名。'});
  return entries;
 }
 
@@ -32,15 +32,15 @@ export function knowledgeGroups(s: GameState): KnowledgeGroup[] {
  const witnessedEvents = Object.entries(s.campaign.resolved).filter(([,result])=>result.witnessed).map(([id,result])=>({
    id:`event-${id}`, title:storyEvents.find(event=>event.id===id)?.title ?? id, detail:result.text,
  }));
- const scouted = firstActPreludes.filter(item=>s.campaign.journal.some(entry=>entry.action===`scout:${item.eventId}`)).map(item=>({id:`prelude-${item.eventId}`,title:`事前查验 · ${storyEvents.find(event=>event.id===item.eventId)!.title}`,detail:item.activeSource}));
+ const scouted = firstActPreludes.filter(item=>s.campaign.journal.some(entry=>entry.action===`scout:${item.eventId}`)).map(item=>({id:`prelude-${item.eventId}`,title:`事前所见 · ${storyEvents.find(event=>event.id===item.eventId)!.title}`,detail:item.activeSource}));
  return [
   {id:'journal-facts',title:'见闻札记 · 亲见与取得',entries:[...clues.filter(x=>s.knownClueIds.includes(x.id)).map(x=>({id:x.id,title:x.title,detail:x.description})),...known.filter(x=>!hearsayFactIds.has(x.id)).map(x=>({id:x.id,title:factTitles[x.id],detail:x.text})),...scouted,...witnessedEvents.filter(entry=>s.campaign.resolved[entry.id.slice(6)]?.choice!=='missed')]},
   {id:'journal-hearsay',title:'见闻札记 · 他人说法',entries:[...known.filter(x=>hearsayFactIds.has(x.id)).map(x=>({id:x.id,title:factTitles[x.id],detail:x.text})),...witnessedEvents.filter(entry=>s.campaign.resolved[entry.id.slice(6)]?.choice==='missed')]},
   {id:'journal-questions',title:'见闻札记 · 待解疑问',entries:journalQuestions(s)},
-  {id:'items',title:'随身物',entries:[...inventoryItems.filter(x=>s.inventoryItemIds.includes(x.id)).map(x=>({id:x.id,title:x.name,detail:x.description})),...s.campaign.evidence.map(id=>({id:`campaign-${id}`,title:evidenceNames[id],detail:'当前持有的材料。内容以你实际取得时的记录为准。'}))]},
-  {id:'places',title:'地点',entries:locations.filter(x=>s.knownLocationIds.includes(x.id)).map(x=>({id:x.id,title:x.name,detail:x.id===s.locationId?'你当前所在的地点。':'你已获知此处，可在地图查看当前通行条件。'}))},
+  {id:'items',title:'随身物',entries:[...inventoryItems.filter(x=>s.inventoryItemIds.includes(x.id)).map(x=>({id:x.id,title:x.name,detail:x.description})),...s.campaign.evidence.map(id=>({id:`campaign-${id}`,title:evidenceNames[id],detail:'这份材料仍在你手里，来处与交接记在旧事中。'}))]},
+  {id:'places',title:'地点',entries:locations.filter(x=>s.knownLocationIds.includes(x.id)).map(x=>({id:x.id,title:x.name,detail:x.id===s.locationId?'你眼下正在这里。':'这处已记在地图上，能否通行仍看眼前时辰与守门人。'}))},
   {id:'people',title:'人物',entries:npcs.filter(x=>s.npcKnowledge[x.id]?.observed).map(x=>{const k=s.npcKnowledge[x.id];return {id:x.id,title:k.matched&&k.knownName?k.knownName:x.observedLabel,detail:`${x.observation}${k.matched&&k.knownIdentity?` 已确认：${k.knownIdentity}`:''} 关系阶段：${relationshipStage(s,x.id)}。`}})},
-  {id:'events',title:'世界事件',entries:worldEvents.filter(x=>s.knownWorldEventIds.includes(x.id)).map(x=>({id:x.id,title:x.title,detail:'此事件已进入你的见闻。更多情况以已知事实和江湖日志为准。'}))},
+  {id:'events',title:'世界事件',entries:worldEvents.filter(x=>s.knownWorldEventIds.includes(x.id)).map(x=>({id:x.id,title:x.title,detail:'你已亲见或从可信来处听说此事；细节记在相邻的见闻与旧事里。'}))},
  ];
 }
 export function knowledgeScope(s: GameState, revision: number, groups = knowledgeGroups(s)) {

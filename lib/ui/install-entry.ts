@@ -24,7 +24,8 @@ export async function requestNativeInstall(event: NativeInstallPrompt): Promise<
 }
 
 export function canRequestNativeInstall(userAgent: string): boolean {
-  return /Android/i.test(userAgent) && !/MicroMessenger/i.test(userAgent);
+  const ios = /(iPhone|iPad|iPod)/i.test(userAgent) || (/Macintosh/i.test(userAgent) && /Mobile/i.test(userAgent));
+  return !ios && !/MicroMessenger/i.test(userAgent);
 }
 
 const menuOptions = '“添加到桌面／添加到主屏幕／安装应用”';
@@ -37,10 +38,10 @@ export function installGuidance(userAgent: string): string {
     return '点击分享按钮，再选择‘添加到主屏幕’。';
   }
   if (/MQQBrowser|QQ\//i.test(userAgent)) {
-    return `QQ 浏览器未提供一键安装时，请在浏览器菜单中寻找${menuOptions}。`;
+    return `QQ 浏览器没有提供一键安装时，请在浏览器菜单中寻找${menuOptions}。若确认后桌面仍无图标，请在系统设置中允许 QQ 浏览器创建桌面快捷方式后重试。`;
   }
   if (/Quark/i.test(userAgent)) {
-    return `夸克未提供一键安装时，请在浏览器菜单中寻找${menuOptions}。`;
+    return `夸克没有提供一键安装时，请在浏览器菜单中寻找${menuOptions}。若确认后桌面仍无图标，请在系统设置中允许夸克创建桌面快捷方式后重试。`;
   }
   if (/HuaweiBrowser|VivoBrowser|HeyTapBrowser|OppoBrowser|MiuiBrowser|SamsungBrowser/i.test(userAgent)) {
     return `请在手机浏览器菜单中寻找${menuOptions}；不同版本支持方式可能不同。`;

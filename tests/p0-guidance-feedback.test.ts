@@ -71,7 +71,7 @@ void test('P0-02 行囊、NPC异常和客栈问话是独立入口；错过主动
   const missed = advanceGameTime(createInitialGame('错过者'), 12 * 60);
   assert.ok(missed.playerKnownFactIds.includes('day-end-watch-rumor'));
   assert.ok(!missed.playerKnownFactIds.includes('next-morning-moving-lead'));
-  assert.match(missed.dialogue.at(-1)!.text, /早知道你会来|等你带着什么/);
+  assert.match(missed.dialogue.at(-1)!.text, /打听今日进城的带伤外乡客/);
   const again = advanceGameTime(missed, 5);
   assert.equal(again.playerKnownFactIds.filter((id) => id === 'day-end-watch-rumor').length, 1);
 });
@@ -81,7 +81,7 @@ void test('P0-03 主动命中任一入口后，第一夜提示次日线索会变
   const nextMorning = advanceGameTime(investigated, 12 * 60);
   assert.ok(nextMorning.playerKnownFactIds.includes('next-morning-moving-lead'));
   assert.ok(!nextMorning.playerKnownFactIds.includes('day-end-watch-rumor'));
-  assert.match(nextMorning.dialogue.at(-1)!.text, /更换接头的人、船或落脚处/);
+  assert.match(nextMorning.dialogue.at(-1)!.text, /换船、换人、换落脚处/);
   assert.equal(nextMorning.player.alive, true);
   assert.equal(nextMorning.prologueEnding, null);
 });

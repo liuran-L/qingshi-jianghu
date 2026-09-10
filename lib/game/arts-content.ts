@@ -16,7 +16,7 @@ export const artNodes: ArtNode[] = [
  { id: 'step-guard',tree:'step',title:'护人转位',tier:3,prerequisite:'step-escape',pledge:'lu-pledged',effect:'守势与环境行动加三；船难和证人夜间可护人转位。',echoes:['ship','witnessnight'] },
  { id: 'medicine-diagnosis',tree:'medicine',title:'基础辨伤',tier:1,legacy:true,effect:'保留创口观察；核药、补账可进行有来源的病伤比对。',echoes:['pharmacy','threeledgers'] },
  { id: 'medicine-bandage',tree:'medicine',title:'基础包扎',tier:2,prerequisite:'medicine-diagnosis',legacy:true,effect:'包扎缓冲四小时；河道和追捕中可先稳定伤员。',echoes:['riverfight','hunt'] },
- { id: 'medicine-poison',tree:'medicine',title:'毒性分辨',tier:2,prerequisite:'medicine-diagnosis',effect:'核药与船难可凭实际药签辨别原料，保留药账或封存药桶。',echoes:['pharmacy','ship'] },
+ { id: 'medicine-poison',tree:'medicine',title:'毒性分辨',tier:2,prerequisite:'medicine-diagnosis',effect:'核药与船难可依药签辨别原料，保留药账或封存药桶。',echoes:['pharmacy','ship'] },
  { id: 'medicine-case',tree:'medicine',title:'病案合参',tier:3,prerequisite:'medicine-poison',pledge:'shen-safe',effect:'问案与补账可查验病案签押，补回药证，不替死人编证词。',echoes:['threeledgers','witnessnight'] },
  { id: 'martial-opening',tree:'martial',title:'识隙',tier:1,effect:'进攻力量加二；刺杀与河道冲突可断兵护人。',echoes:['assassin','riverfight'] },
  { id: 'martial-block',tree:'martial',title:'架桥护卫',tier:2,prerequisite:'martial-opening',effect:'守势加三，伤害减三；追捕与船难可护卫撤离。',echoes:['hunt','ship'] },
@@ -32,7 +32,7 @@ export function artBlock(s: GameState, n: ArtNode): string | null {
  if (hasArt(s,n.id)) return '已投入';
  if (!s.player.alive || s.gatePhase==='detained' || s.prologueEnding || s.campaign.ending) return '当前状态冻结成长';
  if(n.prerequisite && !hasArt(s,n.prerequisite)) return `前置：${artNodes.find(p=>p.id===n.prerequisite)!.title}`;
- if(n.pledge && !s.campaign.flags.includes(n.pledge)) return '尚缺实际守诺或重大事件经历';
+ if(n.pledge && !s.campaign.flags.includes(n.pledge)) return '尚缺一次守诺或重大事件经历';
  if(n.legacy) return s.growth[n.tree as 'step'|'medicine'].availablePoints ? null : '缺此树可用点数，先请教或训练';
  return s.arts.grants.some(g=>g.tree===n.tree && !s.arts.learned.some(l=>l.grant===g.id)) ? null : '缺此树可用点数，先请教或实践兑换';
 }
@@ -66,5 +66,11 @@ const scenes: Record<string,string> = {
 };
 /** 每个节点两处明示、可选的规则回响，不自动替玩家完成事件。 */
 export function artEchoChoices(event: string): StoryChoice[] {
- return artNodes.filter(n=>n.echoes.includes(event)).map(n=>({id:`art-${n.id}`,label:`运用${n.title}：${event==='hearing'?'核章取档':event==='threeledgers'?'比对补账':'依所学护人办事'}（不另付银两）`,reply:`${n.title}在此派上用场。${event==='threeledgers'&&n.tree==='speech'?'你逐栏核对官面签押，从公示底档补出真档副本，没有把药案猜测填入官账。':scenes[event]}`,need:{node:n.id},effect:{...echoEffects[event],...(event==='threeledgers' && n.tree==='speech'?{route:'office',evidence:['official']}:{} )}}));
+ return artNodes.filter(n=>n.echoes.includes(event)).map(n=>({
+  id:`art-${n.id}`,
+  label:event==='assassin'?`使出${n.title}，抢在弦响前封住箭路`:`运用${n.title}：${event==='hearing'?'核章取档':event==='threeledgers'?'比对补账':'依所学护人办事'}（不另付银两）`,
+  ...(event==='assassin'?{hint:'先护住书吏与书房；放弃追上梁间的人。'}:{}),
+  reply:event==='assassin'?`你照${n.title}所练的起手抢前半步，不追梁上的人，先断开压住门索的短刃，护着书吏与县令退入廊门。`:`${n.title}在此派上用场。${event==='threeledgers'&&n.tree==='speech'?'你逐栏核对官面签押，从公示底档补出真档副本，没有把药案猜测填入官账。':scenes[event]}`,
+  need:{node:n.id},effect:{...echoEffects[event],...(event==='threeledgers' && n.tree==='speech'?{route:'office',evidence:['official']}:{} )},
+ }));
 }

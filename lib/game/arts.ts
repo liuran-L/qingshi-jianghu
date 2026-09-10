@@ -15,7 +15,7 @@ export function artTrainingBlock(s:GameState, tree:ArtTree, first=false):string|
  if(totalArtPoints(s)>=7) return '本篇七点上限';
  if(s.campaign.lastTrainDay===campaignDay(s)) return '今日已训练';
  if(s.player.injury==='重伤'||s.player.fatigue>=85) return '先处理重伤或疲劳';
- if(!mentorAvailable(s,tree)) return '尚无实际交往且愿意指点的导师';
+ if(!mentorAvailable(s,tree)) return '尚未结识愿意指点这门技艺的导师';
  const route=artTrees[tree].route;
  if(first) return s.arts.grants.some(g=>g.tree===tree&&g.kind==='mentor') ? '已经接受入门指点' : null;
  if((tree==='step'||tree==='medicine')?!s.growth[tree].pointAwardedAt:!s.arts.grants.some(g=>g.tree===tree&&g.kind==='mentor')) return '先接受入门指点';

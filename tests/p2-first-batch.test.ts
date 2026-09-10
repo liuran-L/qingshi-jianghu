@@ -93,8 +93,8 @@ void test('P2-03 第一日至第三日理解递进：只先留悬念，后知盐
   state = await advanceToElapsed(state, 40 * 60);
   for (const id of ['public-yamen-role', 'public-river-gang-role', 'public-qingyue-role', 'act-one-surface-conflict', 'act-one-involvement'] as const) assert.ok(state.playerKnownFactIds.includes(id));
   const visible = state.dialogue.map(line => line.text).join('\n');
-  assert.match(visible, /县衙告示/); assert.match(visible, /码头船旗/); assert.match(visible, /青岳门名帖/);
-  assert.match(visible, /不能证明具体罪责/);
+  assert.match(visible, /县衙差役守着官盐验印/); assert.match(visible, /码头按船旗点卯/); assert.match(visible, /青岳门弟子.*名帖/);
+  assert.match(visible, /谁在暗处动手，眼下无人肯拿姓名担保/);
 
   let missed = createInitialGame('漏线客');
   missed = { ...missed, player: { ...missed.player, injury: '无', health: missed.player.maxHealth, woundUntreatedMinutes: 0 }, playerKnownFactIds: [] };
@@ -144,14 +144,14 @@ void test('P2-05 第七日可用明示代价的前期布置阻止最坏结果，
   assert.ok(state.campaign.flags.includes('clerk-safe'));
   assert.ok(state.campaign.flags.includes('cargo-safe'));
   assert.ok(state.campaign.evidence.includes('transport'));
-  assert.match(state.campaign.resolved.fire.text, /原账在内室烧毁/);
+  assert.match(state.campaign.resolved.fire.text, /内室原账烧成黑灰/);
 
   let failed = await reachFirePrelude();
   while (failed.worldMinutes < dayAt(failed, 7)) failed = await click(failed, 'journey-wait');
   failed = await click(failed, 'journey-attend:fire');
   failed = await click(failed, 'journey-leave:fire');
-  assert.match(failed.campaign.resolved.fire.text, /东仓也被引燃/);
-  assert.match(failed.campaign.resolved.fire.text, /仍可继续追问/);
+  assert.match(failed.campaign.resolved.fire.text, /东仓也过了火/);
+  assert.match(failed.campaign.resolved.fire.text, /苏晚棠手里或许另有抄件/);
   assert.ok(!failed.campaign.ending);
   assert.ok(getAvailableActions(failed, null).some(item => item.id === 'journey-wait'));
 });
@@ -162,13 +162,13 @@ void test('P2-06 错过事件可从事发地痕迹补知，但不补奖励、不
   state = await click(state, 'journey-wait');
   assert.equal(state.campaign.resolved.temple.choice, 'missed');
   assert.equal(state.campaign.resolved.temple.witnessed, false);
-  const before = { evidence: [...state.campaign.evidence], flags: [...state.campaign.flags], resolvedAt: state.campaign.resolved.temple.at };
+  const before = { evidence: [...state.campaign.evidence], flags: [...state.campaign.flags], resolvedAt: state.campaign.resolved.temple.at, dialogueLength: state.dialogue.length };
   state = movePlayer(state, 'temple');
   assert.equal(state.campaign.resolved.temple.witnessed, true);
   assert.deepEqual(state.campaign.evidence, before.evidence);
   assert.deepEqual(state.campaign.flags, before.flags);
   assert.equal(state.campaign.resolved.temple.at, before.resolvedAt);
-  assert.match(state.dialogue.at(-2)!.text, /血绷带/);
+  assert.ok(state.dialogue.slice(before.dialogueLength).some(line => /血绷带/.test(line.text)));
   assert.deepEqual(decodeSave(encodeSave(state)), state);
 });
 
@@ -187,7 +187,7 @@ void test('P2-07 见闻札记只分亲见、他人说法和疑问，不显示幕
   for (const event of storyEvents) assert.ok(!text.includes(event.opening.join('')));
 });
 
-void test('P2-08 GameState v6 与 v5 键兼容：旧档不获新知，布置可存读，伪造与重复被拒绝', async () => {
+void test('P2-08 GameState v6 与现有键不变：布置可存读，旧结果、伪造与重复均被拒绝', async () => {
   const v5 = decodeSave(readFileSync(new URL('./fixtures/v5-game.json', import.meta.url), 'utf8'))!;
   assert.equal(v5.version, 6);
   assert.ok(!v5.playerKnownFactIds.some(id => ['dock-salt-movement','day2-public-notice','act-one-surface-conflict'].includes(id)));
@@ -205,7 +205,7 @@ void test('P2-08 GameState v6 与 v5 键兼容：旧档不获新知，布置可�
 
   const legacy = structuredClone(prepared);
   legacy.campaign.resolved.fire = { choice: 'missed', at: legacy.worldMinutes, text: '码头账房焚毁，账房未能逃出。脚夫说原账烧了，别处是否有副本无人肯说。', witnessed: true };
-  assert.ok(decodeSave(encodeSave(legacy)), '旧版 fire 缺席文本仍须可读');
+  assert.equal(decodeSave(encodeSave(legacy)), null);
   assert.equal(SAVE_KEY, 'qingshi-jianghu-save-v5:auto');
   assert.equal(firstActPreludes.length, 5);
 });

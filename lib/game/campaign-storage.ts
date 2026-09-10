@@ -7,9 +7,6 @@ const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v ===
 const integer = (v: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= min && v <= max;
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string') && new Set(v).size === v.length;
 const finalFlags = ['xia-victory', 'xia-defeat', 'xia-escort', 'public-truth', 'trade-public', 'trade-monopoly', 'shadow-public', 'shadow-rich', 'partial-trial', 'office-compromise', 'healer-clinic', 'healer-travel'];
-const legacyResultTexts: Record<string, string[]> = {
-  'fire:missed': ['码头账房焚毁，账房未能逃出。脚夫说原账烧了，别处是否有副本无人肯说。'],
-};
 const flags = new Set([...storyEvents.flatMap(e => [...e.choices.flatMap(c => c.effect.flags ?? []), ...(e.missed.effect.flags ?? [])]), ...firstActPreludes.flatMap(item => item.flags ?? []), ...finalFlags]);
 
 /** 旧档完整缺字段才迁移。读取只校验快照，绝不推进或重播世界。 */
@@ -35,7 +32,7 @@ export function decodeCampaign(s: GameState | null): GameState | null {
     const e = storyEvents.find(event => event.id === id);
     if (!e || !record(r) || !integer(r.at, Math.min(c.startedAt ?? Infinity, dayAt(s, e.day)), s.worldMinutes) || !['missed', ...e.choices.map(o => o.id)].includes(r.choice) || typeof r.text !== 'string' || typeof r.witnessed !== 'boolean') return null;
     const expected = r.choice === 'missed' ? e.missed.text : e.choices.find(o => o.id === r.choice)!.reply;
-    if (r.text !== expected && !legacyResultTexts[`${id}:${r.choice}`]?.includes(r.text)) return null;
+    if (r.text !== expected) return null;
   }
   const earned = Object.entries(c.resolved).map(([id, r]) => {
     const event = storyEvents.find(e => e.id === id)!;

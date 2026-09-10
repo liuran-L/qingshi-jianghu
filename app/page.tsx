@@ -76,6 +76,20 @@ const abilityLabels = {
   medicine: '医术',
 } as const;
 
+type InstallPromptWindow = Window & {
+  __qingshiInstallPrompt?: (Event & NativeInstallPrompt) | null;
+};
+
+function ActionText({ choice, busy = false }: { choice: LimitedAction; busy?: boolean }) {
+  const title = busy ? '等待回应……' : choice.id === 'open-growth' ? '查看功法线索' : choice.label;
+  return <span className="block w-full">
+    <span className="block font-medium text-ink">{title}</span>
+    {choice.hint && <small className="mt-1 block text-xs font-normal leading-5 text-ink/55">{choice.hint}</small>}
+    {choice.details && <small className="mt-1 block text-xs font-normal leading-5 text-cinnabar/85">{choice.details}</small>}
+    {choice.disabledReason && <small className="mt-1 block text-xs font-normal leading-5 text-ink/55">{choice.disabledReason}</small>}
+  </span>;
+}
+
 export default function Home() {
   const router = useRouter();
   return <GameHome navigate={(path) => router.push(path)} />;
@@ -132,18 +146,28 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
   }, [saveRepository]);
 
   useEffect(() => {
+    const installWindow = window as InstallPromptWindow;
+    const syncCapturedInstallPrompt = () => {
+      if (installWindow.__qingshiInstallPrompt) setNativeInstallPrompt(installWindow.__qingshiInstallPrompt);
+    };
     const captureInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setNativeInstallPrompt(event as Event & NativeInstallPrompt);
+      const prompt = event as Event & NativeInstallPrompt;
+      installWindow.__qingshiInstallPrompt = prompt;
+      setNativeInstallPrompt(prompt);
     };
     const markInstalled = () => {
+      installWindow.__qingshiInstallPrompt = null;
       setStandaloneEntry(true);
       setNativeInstallPrompt(null);
       setInstallHelp(null);
     };
+    syncCapturedInstallPrompt();
+    window.addEventListener('qingshi-installprompt-ready', syncCapturedInstallPrompt);
     window.addEventListener('beforeinstallprompt', captureInstallPrompt);
     window.addEventListener('appinstalled', markInstalled);
     return () => {
+      window.removeEventListener('qingshi-installprompt-ready', syncCapturedInstallPrompt);
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
       window.removeEventListener('appinstalled', markInstalled);
     };
@@ -168,8 +192,10 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
     }
     try {
       await requestNativeInstall(nativeInstallPrompt);
+      (window as InstallPromptWindow).__qingshiInstallPrompt = null;
       setNativeInstallPrompt(null);
     } catch {
+      (window as InstallPromptWindow).__qingshiInstallPrompt = null;
       setNativeInstallPrompt(null);
       setInstallHelp(installGuidance(userAgent));
     }
@@ -454,7 +480,14 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
               )}
             </details>}
 
-            {battleId && !game.campaign.ending && <section className="my-4 border border-cinnabar/30 p-4 text-sm" aria-label="冲突形势"><h3 className="font-serif text-lg">{battles[battleId].title}</h3><p>起因：{battles[battleId].cause}；对手：{battles[battleId].opponent}</p><p>目标：{battles[battleId].goal}。失守可能失证、增加追查或使受护者遇害；撤退只保证尝试脱离自己，投降会结束旅程。</p><p>可助阵：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+' · 战斗等级 '+a.level+(a.injured?'（负伤）':'')).join('；') || '目前没有满足在场或约定、信任和敌意条件的同伴'}</p></section>}
+            {battleId && !game.campaign.ending && (battleId === 'assassin'
+              ? <section className="my-4 space-y-1 border border-cinnabar/30 p-4 text-sm leading-6" aria-label="冲突形势">
+                  <h3 className="font-serif text-lg">{battles[battleId].title}</h3>
+                  <p>{battles[battleId].cause}；{battles[battleId].opponent}正封住退路。</p>
+                  <p>眼前要护住：{battles[battleId].goal}。</p>
+                  <p>并肩的人：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+(a.injured?'（负伤）':'')).join('；') || '眼下无人能与你并肩'}</p>
+                </section>
+              : <section className="my-4 border border-cinnabar/30 p-4 text-sm" aria-label="冲突形势"><h3 className="font-serif text-lg">{battles[battleId].title}</h3><p>起因：{battles[battleId].cause}；对手：{battles[battleId].opponent}</p><p>目标：{battles[battleId].goal}。失守可能失证、增加追查或使受护者遇害；撤退只保证尝试脱离自己，投降会结束旅程。</p><p>可助阵：{battleContext(game,battleId).allies.map(a=>getNpcDisplayName(game,a.id)+' · '+a.style+' · 战斗等级 '+a.level+(a.injured?'（负伤）':'')).join('；') || '目前没有满足在场或约定、信任和敌意条件的同伴'}</p></section>)}
             <section className="dialogue-window" aria-label="当前对话">
               <div className="dialogue-paper min-h-[170px] p-5 sm:p-6">
                 <button type="button" className="w-full text-left" onClick={confirmLine} aria-label={currentLine ? `${currentLine.speaker}：${playerText(currentLine.text, game)}。确认以跳过显示或继续。` : '此刻无人开口'}>
@@ -493,7 +526,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
                         disabled={busy || !!choice.disabledReason}
                         title={choice.disabledReason}
                       >
-                        <span>{busy ? '等待回应……' : choice.id === 'open-growth' ? '查看功法线索' : choice.label}{choice.disabledReason && <small className="mt-1 block font-normal text-ink/55">{choice.disabledReason}</small>}</span>
+                        <ActionText choice={choice} busy={busy} />
                       </Button>
                     ))}
                     {actionGroups.secondary.length > 0 && <details className="secondary-actions border border-ink/20 bg-paper/40 p-2 sm:col-span-2">
@@ -506,7 +539,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
                           onClick={() => void submitInteraction(choice)}
                           disabled={busy || !!choice.disabledReason}
                           title={choice.disabledReason}
-                        ><span>{choice.label}{choice.disabledReason && <small className="mt-1 block font-normal text-ink/55">{choice.disabledReason}</small>}</span></Button>)}
+                        ><ActionText choice={choice} /></Button>)}
                       </div>
                     </details>}
                   </div>
@@ -581,7 +614,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
             </div>
           </section>}
 
-          <section className="paper-panel p-4"><h2 className="section-title">技艺与师承</h2><p className="mt-3 text-sm">本篇已获 {totalArtPoints(game)} / 7 点。基础、分支与剧情技艺均需实际前置。</p><Button className="mt-3" onClick={() => setGrowthOpen(true)}>打开功法页</Button></section>
+          <section className="paper-panel p-4"><h2 className="section-title">技艺与师承</h2><p className="mt-3 text-sm">本篇已获 {totalArtPoints(game)} / 7 点。先有相应经历，才可参悟后续技艺。</p><Button className="mt-3" onClick={() => setGrowthOpen(true)}>打开功法页</Button></section>
 
           <KnownInformation key={knowledgeScope(game, knowledgeRevision, knownGroups)} groups={knownGroups} />
 
@@ -603,7 +636,7 @@ export function GameHome({ navigate }: { navigate: (path: string) => void }) {
 
       <Dialog open={bagOpen} onOpenChange={setBagOpen}>
         <DialogContent className="paper-panel max-h-[85vh] overflow-y-auto bg-[#eee8d8] text-ink">
-          <DialogHeader><DialogTitle>背包 · 手中之物</DialogTitle><DialogDescription>只记你仍持有的物品。查看不耗时；实际使用须确认并满足眼前条件。</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>背包 · 手中之物</DialogTitle><DialogDescription>只记你仍持有的物品。翻看不耗时；遇到有人接收或查验时，才会出现相应用途。</DialogDescription></DialogHeader>
           <InventoryPanel game={game} actions={limitedActions} ready={!busy && isLatestLine} onUse={a=>{setBagOpen(false);setItemAction(a);}} />
         </DialogContent>
       </Dialog>

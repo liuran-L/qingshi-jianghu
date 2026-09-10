@@ -41,6 +41,8 @@ export interface StoryEffect {
 export interface StoryChoice {
   id: string;
   label: string;
+  /** 只写当场取舍；属于显示派生，不进入事件结算或存档。 */
+  hint?: string;
   reply: string;
   effect: StoryEffect;
   need?: { ally?: string; node?: string; money?: number; flag?: string; evidence?: string; route?: LifeRoute; score?: number };

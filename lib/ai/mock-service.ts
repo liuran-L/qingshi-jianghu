@@ -29,7 +29,7 @@ export const mockAIService: DialogueAIService = {
       case 'challenge-search':
         return proposal('provoke', turns === 0 ? '“嘴倒硬。路引拿不出来，便把行囊解开，一件件验。”' : '“再多一句，便随我去班房里慢慢说。”', '守门差役横过铁尺，先招手唤近另一名差役。', ['search']);
       case 'offer-bribe':
-        return proposal('bribe', '“两两，换这一次不细查。进城后别说在我这里见过什么。”', '他借着登记簿遮住手，收走了两两碎银。');
+        return proposal('bribe', '“二两，换这一次不细查。进城后别说在我这里见过什么。”', '他借登记簿遮住手，收走二两碎银。');
       case 'present-gate-document':
         return proposal('request-service', '“文书能对上。登记过便进，出了差错仍要回来问话。”', '差役核过印记，将文书原样交回。');
       case 'show-gate-fragment':
@@ -55,7 +55,7 @@ export const mockAIService: DialogueAIService = {
       case 'ask-corpse':
         return proposal('ask-information', '“送来时已没了气。创口很浅，人却因失血没了。身上没有路引，也没有能认身份的物件。左耳有旧豁口，一根小指缺了半节，或许有人认得。”', '医者把声音压低，向你描述已经验过的体貌；姓名仍须由认识死者的人或商旅名册核对。');
       case 'compare-corpse-wound':
-        return proposal('ask-information', '“像。创口走向与刃宽相近，两处都残着同一种苦味。我又验了一遍，应当是乌鳞散：同类淬毒兵刃所伤，不能据此断言是同一个凶手。”', '沈砚秋看着染黑棉布的瓷碟，说死者失血与毒性加重相叠，才没能撑过来。医学结论止于伤痕，不替任何势力定罪。');
+        return proposal('ask-information', '“像。创口走向与刃宽相近，两处都残着同一种苦味。我又验了一遍，应当是乌鳞散。伤口相似，下刀的人却未必是同一个。”', '沈砚秋看着瓷碟里的染黑棉布：“那人失血太久，毒性又重，才没能撑过来。凶手的姓名不在伤口上。”');
       case 'ask-news':
         return view.sceneSignals.includes('nameless-corpse-spread')
           ? view.npc?.id === 'lu-guanlan'
@@ -69,7 +69,7 @@ export const mockAIService: DialogueAIService = {
       case 'observe-inn':
       case 'observe-clinic':
       case 'observe-scene':
-        return proposal('observe', undefined, '你留意了片刻，只把眼前的人、出入口和明显物件记在心里，没有凭空得出更多结论。');
+        return proposal('observe', undefined, '你留意了片刻，把眼前的人、出入口与几样显眼物件记在心里。风过门槛，没有新的痕迹露出来。');
       case 'ask-local-news':
         return proposal('ask-information', '“这里的事，与外乡人知道得太多没有好处。”');
       case 'leave-conversation':

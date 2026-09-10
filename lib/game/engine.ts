@@ -100,13 +100,13 @@ export function createInitialGame(name: string): GameState {
       line('旁白', firstNpc.observation, 'narration'),
       line(firstNpc.observedLabel, '“站住。路引拿出来。哪里人，来青石县做什么？”', 'npc'),
     ],
-    logs: [{ id: makeId('log'), atMinutes: storyStartedAtMinutes, type: 'system', text: `${playerName}在荒道遇袭后抵达青石县城门。` }],
+    logs: [{ id: makeId('log'), atMinutes: storyStartedAtMinutes, type: 'system', text: `${playerName}带伤抵达青石县城门。` }],
   };
 }
 
 const eventOutcome = (id: WorldEventId): string => {
   if (id === 'nameless-corpse') return '无名尸被送往回春堂，消息尚未完全传开。';
-  return '事件按既定时间发生，具体结果等待后续规则结算。';
+  return '外头已有动静，详情尚未传到你耳中。';
 };
 
 export function applyScheduledWorldEvents(state: GameState): GameState {
@@ -124,21 +124,21 @@ export function applyScheduledWorldEvents(state: GameState): GameState {
     const followedActiveSource = activeSources.some((id) => next.playerKnownFactIds.includes(id));
     const fact: KnownFactId = followedActiveSource ? 'next-morning-moving-lead' : 'day-end-watch-rumor';
     const text = followedActiveSource
-      ? '黎明换班时，你把先前的异样重新串起：有人似乎早知道你会来，而且正在更换接头的人、船或落脚处。若要查清，次日再追已经会看到不同的局面。'
-      : '黎明换班时，一名脚夫低声提醒：昨夜有人打听今日进城的带伤外乡客，问话者明早会去码头改搭别船。对方像是早知道你会来，也像在等你带着什么；到了次日，人和船都可能变。';
+      ? '黎明换班时，你想起那几处异样：有人早早打听过你的模样和行囊，如今又在换船、换人、换落脚处。天亮以后再追，眼前的人与船便不是昨日那一拨了。'
+      : '黎明换班时，一名脚夫低声告诉你：昨夜有人打听今日进城的带伤外乡客，问话的人明早要去码头改搭别船。天一亮，人和船都要换。';
     next = {
       ...next,
       playerKnownFactIds: [...next.playerKnownFactIds, fact],
       dialogue: [...next.dialogue, line('旁白', text, 'narration')],
-      logs: [...next.logs, log(next, 'discovery', `获得情报：${getKnownFact(fact).text}`)],
+      logs: [...next.logs, log(next, 'discovery', `记下消息：${getKnownFact(fact).text}`)],
     };
   }
   if (elapsedMinutes >= 36 * 60 && next.player.alive && !campaignActive(next) && !next.playerKnownFactIds.includes('day2-public-notice')) {
     next = {
       ...next,
       playerKnownFactIds: [...next.playerKnownFactIds, 'day2-public-notice'],
-      dialogue: [...next.dialogue, line('旁白', '第二日将尽，县衙把一张加验告示贴到城门与渡口：近日盐路交接须复核船号、路引和经手签押。你至少可以确定，眼前的异常已经牵到盐路、渡口与官面秩序；告示没有写谁有罪。', 'narration')],
-      logs: [...next.logs, log(next, 'discovery', `获得情报：${getKnownFact('day2-public-notice').text}`)],
+      dialogue: [...next.dialogue, line('旁白', '第二日将尽，县衙在城门与渡口贴出加验告示：近日盐路交接须复核船号、路引与经手签押。告示落着官印，没有点任何人的姓名。', 'narration')],
+      logs: [...next.logs, log(next, 'discovery', `记下告示：${getKnownFact('day2-public-notice').text}`)],
     };
   }
   const publicConflictFacts: KnownFactId[] = ['public-yamen-role', 'public-river-gang-role', 'public-qingyue-role', 'act-one-surface-conflict', 'act-one-involvement'];
@@ -147,8 +147,8 @@ export function applyScheduledWorldEvents(state: GameState): GameState {
     next = {
       ...next,
       playerKnownFactIds: [...next.playerKnownFactIds, ...missingPublicFacts],
-      dialogue: [...next.dialogue, line('旁白', '第三日上午，三种公开迹象同时出现：县衙告示写明官盐封验与城门秩序由公门负责；码头船旗、工头点卯和脚夫让路表明漕帮掌握河道交接；青岳门名帖与佩剑弟子则公开说明门派因同门之事来到县城。荒道呼喊、被提前辨认的行囊与同号盐船把你接进这段时序，但三方的表面冲突仍不能证明具体罪责、暗中交易或幕后责任。', 'narration')],
-      logs: [...next.logs, ...missingPublicFacts.map(id => log(next, 'discovery', `获得情报：${getKnownFact(id).text}`))],
+      dialogue: [...next.dialogue, line('旁白', '第三日上午，县衙差役守着官盐验印，漕帮工头在码头按船旗点卯，几名青岳门弟子则带着名帖进城寻同门。荒道上的“丁字十七”、行囊内侧的新划痕和今日靠岸的同号盐船，把你的来路牵进了三方眼前。至于谁在暗处动手，眼下无人肯拿姓名担保。', 'narration')],
+      logs: [...next.logs, ...missingPublicFacts.map(id => log(next, 'discovery', `记下见闻：${getKnownFact(id).text}`))],
     };
   }
   return next;
@@ -365,10 +365,10 @@ export function applyInteractionResult(state: GameState, request: InteractionReq
     lodgingRecords: resolution.lodgingRecord ? [...state.lodgingRecords, { locationId: 'inn', registeredName: state.dayOne.registeredName ?? state.player.name, atMinutes: advanced.worldMinutes }] : state.lodgingRecords,
   };
   const logs = [...advanced.logs, log(next, 'dialogue', npcId ? `与${speaker}产生交互。` : '尝试与场景互动。')];
-  for (const id of newLocations) logs.push(log(next, 'discovery', `得知地点：${getLocation(id).name}。`));
-  for (const id of newFacts as KnownFactId[]) logs.push(log(next, 'discovery', `获得情报：${getKnownFact(id).text}`));
-  for (const id of newClues) logs.push(log(next, 'discovery', `发现线索：${getClue(id).title}。`));
-  for (const id of newItems) logs.push(log(next, 'discovery', `获得物品：${getInventoryItem(id).name}。`));
+  for (const id of newLocations) logs.push(log(next, 'discovery', `得知去处：${getLocation(id).name}。`));
+  for (const id of newFacts as KnownFactId[]) logs.push(log(next, 'discovery', `记下见闻：${getKnownFact(id).text}`));
+  for (const id of newClues) logs.push(log(next, 'discovery', `留意到：${getClue(id).title}。`));
+  for (const id of newItems) logs.push(log(next, 'discovery', `收入行囊：${getInventoryItem(id).name}。`));
   if (resolution.dangerLog) logs.push(log(next, 'danger', resolution.dangerLog));
   next = rememberNpcInteraction(state, { ...next, logs }, request);
   next = applyPrologue(next, state, request);

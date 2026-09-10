@@ -13,7 +13,7 @@ void test('A06 拒绝住宿登记不留下姓名，次日掌柜回声与医馆�
  s=movePlayer(s,'clinic');s=await click(s,'request-treatment');s=movePlayer(s,'inn');s=advanceGameTime(s,720);
  const doctor=structuredClone(s.npcKnowledge['shen-yanqiu']);
  s=await click(s,'open-daytwo');s=await click(s,'inn-echo');
- assert.ok(s.dialogue.some(l=>l.text.includes('昨日拒绝登记')));
+ assert.ok(s.dialogue.some(l=>l.text.includes('你昨日没登记')));
  assert.equal(s.dayTwo.innEchoSeen,true);assert.deepEqual(s.npcKnowledge['shen-yanqiu'],doctor);
  assert.ok(!getAvailableActions(s,s.selectedNpcId).some(a=>a.id==='inn-echo'));
  assert.deepEqual(decodeSave(encodeSave(s)),s);
