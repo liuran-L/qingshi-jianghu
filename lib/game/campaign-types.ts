@@ -41,7 +41,7 @@ export interface StoryEffect {
 export interface StoryChoice {
   id: string;
   label: string;
-  /** 只写当场取舍；属于显示派生，不进入事件结算或存档。 */
+  /** 只在本次立刻改变资源、证物、追查、人物处境或眼前取舍时逐项明写；不自动兜底，不进入存档。 */
   hint?: string;
   reply: string;
   effect: StoryEffect;

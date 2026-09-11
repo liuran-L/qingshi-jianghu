@@ -38,7 +38,7 @@ void test('P09-01 关键提示由界面派生，普通观察不滥加提示', as
   assert.ok(SAVE_KEY.startsWith('qingshi-jianghu-save-v7'));
 });
 
-void test('P09-02 第一幕选择常驻说明眼前取舍，离场不预报具体后果', async () => {
+void test('P09-02 第一幕关键选择只写眼前取舍，离场与越时限不再统一补小字', async () => {
   let state = await beginning();
   state = await waitUntil(state, dayAt(state, 4));
   assert.doesNotMatch(byId(state, 'journey-attend:temple').label, /前往\s*·/);
@@ -48,13 +48,11 @@ void test('P09-02 第一幕选择常驻说明眼前取舍，离场不预报具�
   }
   const leave = byId(state, 'journey-leave:temple');
   assert.equal(leave.label, '离开现场');
-  assert.match(leave.hint ?? '', /现场不会等你/);
-  assert.doesNotMatch(leave.hint ?? '', /死亡|遗嘱|追兵|结局/);
+  assert.equal(leave.hint, undefined);
 
   const nearDeadline = { ...state, campaign: { ...state.campaign, activeEvent: null }, worldMinutes: dayAt(state, 5) - 60 };
-  assert.match(byId(nearDeadline, 'journey-rest').hint ?? '', /现场不会等你/);
-  assert.match(byId(nearDeadline, 'journey-wait').hint ?? '', /现场不会等你/);
-  assert.doesNotMatch(`${byId(nearDeadline, 'journey-rest').hint} ${byId(nearDeadline, 'journey-wait').hint}`, /死亡|遗嘱|追兵|结局/);
+  assert.equal(byId(nearDeadline, 'journey-rest').hint, undefined);
+  assert.equal(byId(nearDeadline, 'journey-wait').hint, undefined);
 });
 
 void test('P09-03 第五日冲突分三层，只显示本次会变化的战况与代价', async () => {

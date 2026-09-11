@@ -64,12 +64,25 @@ const scenes: Record<string,string> = {
  lastprice:'你按已经公开的约定接运粮食，实收六两，未签独占条款。',
  witnessnight:'你按门、桥、车三处安排守护，证人逐个点名到达，没有假写无人照看的平安。',
 };
+const sceneHints: Record<string,string> = {
+ survivor:'依所学接走活口并留下亲述证言。',
+ roads:'依所学走完北山两日往返，带回药库留底；其余两路此行不去。',
+ pharmacy:'依所学保留药库记录，并与沈砚秋共同核验。',
+ riverfight:'依所学先护伤员与民船，留下脚夫证言；漕运账仍在乔五手里。',
+ hearing:'依所学把县衙真档具名入卷。',
+ hunt:'依所学转走沈砚秋、病人与病案。',
+ ship:'依所学堵住破口，把脚夫、药桶与药库记录留在封锁河湾。',
+ order:'依所学缴械护粮，让各巷具名互保。',
+ threeledgers:'依所学核对病案与药签，补入一份药库记录。',
+ lastprice:'依公开约定接下这一趟粮运，当场收六两；不签独家船约。',
+ witnessnight:'依所学分守门、桥与车路，护住具名证人。',
+};
 /** 每个节点两处明示、可选的规则回响，不自动替玩家完成事件。 */
 export function artEchoChoices(event: string): StoryChoice[] {
  return artNodes.filter(n=>n.echoes.includes(event)).map(n=>({
   id:`art-${n.id}`,
   label:event==='assassin'?`使出${n.title}，抢在弦响前封住箭路`:`运用${n.title}：${event==='hearing'?'核章取档':event==='threeledgers'?'比对补账':'依所学护人办事'}（不另付银两）`,
-  ...(event==='assassin'?{hint:'先护住书吏与书房；放弃追上梁间的人。'}:{}),
+  hint:event==='assassin'?'先护住书吏与书房；放弃追上梁间的人。':event==='threeledgers'&&n.tree==='speech'?'依所学核对官面签押，补入一份县衙真档副本。':sceneHints[event],
   reply:event==='assassin'?`你照${n.title}所练的起手抢前半步，不追梁上的人，先断开压住门索的短刃，护着书吏与县令退入廊门。`:`${n.title}在此派上用场。${event==='threeledgers'&&n.tree==='speech'?'你逐栏核对官面签押，从公示底档补出真档副本，没有把药案猜测填入官账。':scenes[event]}`,
   need:{node:n.id},effect:{...echoEffects[event],...(event==='threeledgers' && n.tree==='speech'?{route:'office',evidence:['official']}:{} )},
  }));

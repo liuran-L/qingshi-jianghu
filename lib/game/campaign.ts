@@ -47,19 +47,8 @@ const eventAttendLabels:Record<string,string>={
   ship:'循呼救与异味赶到封锁河湾', order:'到粮仓核看仓数与领粮簿', threeledgers:'按缺账清单到候事廊核卷',
   lastprice:'带着报价信到县衙核清交割', witnessnight:'回客栈查看证人收到的威胁信',
 };
-function storyChoiceHint(choice: StoryChoice): string {
-  if (choice.hint) return choice.hint;
-  const parts: string[] = [];
-  if ((choice.need?.money ?? 0) > 0) parts.push(`当场付出${choice.need!.money}两`);
-  if (choice.need?.evidence) parts.push(`须实际持有${evidenceNames[choice.need.evidence] ?? '相应材料'}`);
-  if (choice.effect.evidence?.length) parts.push(`争取留下${choice.effect.evidence.map(id => evidenceNames[id] ?? '可核材料').join('、')}`);
-  if (choice.effect.dead?.length) parts.push('被放弃的人可能无法活着离开');
-  if (choice.effect.help) parts.push(`优先照应${coreNames[choice.effect.help] ?? '眼前的人'}`);
-  if (choice.effect.harm) parts.push(`会损及与${coreNames[choice.effect.harm] ?? '对方'}的关系`);
-  if ((choice.effect.wanted ?? 0) > 0) parts.push('会留下可供追查的痕迹');
-  if ((choice.effect.wanted ?? 0) < 0) parts.push('争取减轻已经存在的追查');
-  if (!parts.length) parts.push(`只处理“${choice.label}”涉及的眼前目标，未取得的材料与未到场的人不会随之补齐`);
-  return `${parts.join('；')}。`;
+function storyChoiceHint(choice: StoryChoice): string | undefined {
+  return choice.hint;
 }
 const stamp = (s: GameState, id: string, text: string, money = 0, debt = 0) => {
   s.campaign.journal.push({ at: s.worldMinutes, action: id, money, debt, text });
@@ -153,13 +142,11 @@ export function campaignActions(s: GameState): LimitedAction[] {
     const battleActions = battles[event.id] ? (Object.keys(tacticNames) as BattleTactic[]).filter(t=>battleEnabled(s,event.id,t)).map(t=>{
       const view=battlePresentation(s,event.id,t);return action(`battle:${event.id}:${t}`,view.title,undefined,view.hint,view.details);
     }) : [];
-    return [...battleActions, ...event.choices.filter(choice => !choice.id.startsWith('battle-') && canChooseStory(s, choice)).map(choice => action(`choose:${event.id}:${choice.id}`, choice.label, undefined, storyChoiceHint(choice))), action(`leave:${event.id}`, '离开现场', undefined, '你一走，本次现场不会等你；只按缺席结果留下痕迹。')];
+    return [...battleActions, ...event.choices.filter(choice => !choice.id.startsWith('battle-') && canChooseStory(s, choice)).map(choice => action(`choose:${event.id}:${choice.id}`, choice.label, undefined, storyChoiceHint(choice))), action(`leave:${event.id}`, '离开现场')];
   }
   if (c.finale) return finaleActions(s);
   const options: LimitedAction[] = [...artActions(s)];
   const event = upcomingEvent(s);
-  const eventIndex = event ? storyEvents.indexOf(event) : -1;
-  const openEventDeadline = event && s.worldMinutes >= dayAt(s, event.day) ? dayAt(s, storyEvents[eventIndex + 1]?.day ?? 58) : null;
   const prelude = event && firstActPreludes.find(item => item.eventId === event.id);
   if (event && prelude && s.worldMinutes >= dayAt(s, event.day - 1) && s.worldMinutes < dayAt(s, event.day) && !c.journal.some(entry => entry.action === `scout:${event.id}`)) {
     const tooLate = s.worldMinutes + prelude.minutes >= dayAt(s, event.day);
@@ -169,9 +156,9 @@ export function campaignActions(s: GameState): LimitedAction[] {
   if (event && s.worldMinutes >= dayAt(s, event.day)) options.push(action(`attend:${event.id}`, eventAttendLabels[event.id] ?? `循消息赶到${event.title}现场`));
   if (s.worldMinutes >= dayAt(s, 58)) {
     for (const route of lifeRoutes) if (!routeQualification(s, route)) options.push(action(`finale:${route}`, `为此生作结 · ${routeNames[route]}`));
-    options.push(action('retire', '留在城中退隐，接受尚未解决的旧事'));
+    options.push(action('retire', '留在城中退隐，接受尚未解决的旧事', undefined, '结束这一程，在城中靠零工与旧交安顿；未完的案仍留在案里。'));
   }
-  if (s.worldMinutes >= dayAt(s, 18) && c.wanted < 6) options.push(action('away', `远走他乡，结束此生篇章${c.debt ? '（旧债随行）' : ''}`));
+  if (s.worldMinutes >= dayAt(s, 18) && c.wanted < 6) options.push(action('away', `远走他乡，结束此生篇章${c.debt ? '（旧债随行）' : ''}`, undefined, '立即离开青石；旧债与已有追查随身，未参与的清算不记在你名下。'));
   if (c.wanted >= 4) options.push(action('amends', `具名自首并做一日赈济（追查 -3，人情债 +4）`));
   if (s.player.injury !== '无' || s.player.poison !== '无' || s.player.health < 70) options.push(action('care', '请行脚医者清创调养（四两；不足记债，不产生验伤证据）'));
   options.push(action('rest', '借住歇息八小时（食宿一两；不足记债）'));
@@ -201,20 +188,7 @@ export function campaignActions(s: GameState): LimitedAction[] {
   if (s.economy.medicalDebt && s.player.money >= 3) options.push(action('medical-debt', '补清序章三两诊金'));
   if (Object.values(c.resolved).some(r => !r.witnessed)) options.push(action('rumors', '向过路行旅打听已发生的消息（一刻钟）'));
   options.push(action('wait', event ? `安顿生活，等到下一封来信（最迟第${event.day}日；食宿每日一两）` : '安顿生活，等到清算之日（食宿每日一两）'));
-  if (openEventDeadline === null) return options;
-  const actionMinutes: Record<string, number> = {
-    'journey-amends': 1440, 'journey-care': 60, 'journey-rest': 480,
-    'journey-work:xia': 360, 'journey-work:trade': 360, 'journey-work:shadow': 360, 'journey-work:office': 360, 'journey-work:healer': 360,
-    'journey-arts:mentor:step': 60, 'journey-arts:mentor:medicine': 60, 'journey-arts:mentor:martial': 60, 'journey-arts:mentor:speech': 60,
-    'journey-arts:train:step': 240, 'journey-arts:train:medicine': 240, 'journey-arts:train:martial': 240, 'journey-arts:train:speech': 240,
-    'journey-teach:step': 60, 'journey-teach:medicine': 60, 'journey-lesson:step': 360, 'journey-lesson:medicine': 360,
-    'journey-bandage': 15, 'journey-rumors': 15,
-    [`journey-attend:${event!.id}`]: 60,
-  };
-  return options.map(item => {
-    const forfeits = item.id === 'journey-wait' || actionMinutes[item.id] !== undefined && s.worldMinutes + actionMinutes[item.id] >= openEventDeadline;
-    return forfeits ? { ...item, hint: item.hint ?? '这项行动会越过眼前这次机会的时限，现场不会等你。' } : item;
-  });
+  return options;
 }
 export const stealPreview = (s: GameState) => ({ win: s.player.abilities.agility + s.campaign.trained.shadow + (s.growth.step.nodes.includes('step-foundation') ? 1 : 0) >= 3 + Math.floor(s.campaign.wanted / 2) });
 export const patron: Record<LifeRoute, string> = { xia: 'lu-guanlan', trade: 'su-wantang', shadow: 'qiao-wu', office: 'ning-buping', healer: 'shen-yanqiu' };
@@ -488,10 +462,22 @@ function finaleActions(s: GameState): LimitedAction[] {
       const shown = (t: BattleTactic, id = `battle:finale:${t}`) => { const view = battlePresentation(s, 'finale', t); return action(id, view.title, undefined, view.hint, view.details); };
       return [...(['guard','environment','retreat','bargain'] as BattleTactic[]).filter(t=>battleEnabled(s,'finale',t)).map(t=>shown(t)), shown('attack', 'end:xia:fight'), ...(mainProof(s) ? [action('end:xia:proof', '当众逐份核对三账', undefined, '让可核材料拆散对方同盟；不与高手单斗。')] : []), action('end:xia:escort', '付船钱护送证人出围', undefined, '放弃追凶，先让证人活着离开；六两不足部分记债。'), shown('surrender', 'end:surrender')];
     }
-    if (route === 'trade') return [action('end:trade:public', '以十二两立公开股约，脚夫分利'), action('end:trade:monopoly', '以十二两接独占运输契，承担旧债主的要价')];
-    if (route === 'shadow') return [action('end:shadow:publish', '把两类筹码公开，舍弃勒索收益'), action('end:shadow:sell', '以筹码换二十两，留一份自保')];
-    if (route === 'office') return [action('end:office:trial', mainProof(s) ? '提交三账互证，申请重审许惟谦等人' : '只控告真档可证的伪印，不夸大证据'), action('end:office:compromise', '接受有限追责，换取核仓职缺')];
-    return [action('end:healer:clinic', '留下开义诊，承担食宿旧债'), action('end:healer:travel', '带病人离开河湾，行医沿途还债')];
+    if (route === 'trade') return [
+      action('end:trade:public', '以十二两立公开股约，脚夫分利', undefined, '当场投入十二两，让脚夫共同持股；放弃独占船路。'),
+      action('end:trade:monopoly', '以十二两接独占运输契，承担旧债主的要价', undefined, '当场投入十二两取得独家船契；旧盐路主人的条件也一并落印。'),
+    ];
+    if (route === 'shadow') return [
+      action('end:shadow:publish', '把两类筹码公开，舍弃勒索收益', undefined, '公开手中筹码并减轻追查；放弃用它们换银。'),
+      action('end:shadow:sell', '以筹码换二十两，留一份自保', undefined, '当场得二十两，也会添上新的追查。'),
+    ];
+    if (route === 'office') return [
+      action('end:office:trial', mainProof(s) ? '提交三账互证，申请重审许惟谦等人' : '只控告真档可证的伪印，不夸大证据', undefined, mainProof(s) ? '把三账交入重审；你与宁不平一同具名担责。' : '只把真档可核的伪印写入公卷；其余疑点留待后查。'),
+      action('end:office:compromise', '接受有限追责，换取核仓职缺', undefined, '接受只追已有亏空的判稿；换取一份核仓差事。'),
+    ];
+    return [
+      action('end:healer:clinic', '留下开义诊，承担食宿旧债', undefined, '留在城中接诊；食宿旧债仍由你承担。'),
+      action('end:healer:travel', '带病人离开河湾，行医沿途还债', undefined, '先带病人离开受损河湾；沿途行医偿还旧债。'),
+    ];
   }
   if (c.finaleStep === 1) return [action('end:record', '第59日 · 逐项核对最终案卷与身边人')];
   return [action('end:finish', '第60日 · 在这一页落款')];
@@ -526,12 +512,12 @@ const endingTitles: Record<LifeEnding, string> = { xia: '江湖有路', trade: '
 export function worldReckoning(s: GameState): string[] {
   const c = s.campaign;
   return [
-    has(s, 'public-truth') ? '三类账目进入公开核验。伪印、私运与药库流出形成可追责的链条；你没有声称已经抓到所有逃走的人。' : has(s, 'partial-trial') ? '官档只追究已有真档佐证的伪印案，毒案与盐路仍留疑点。' : '盐案没有因你这一生的选择自动大白。官府只按现有材料留下有限结论，江湖仍传着另一份说法。',
+    has(s, 'public-truth') ? '三类账目进入公开核验。伪印、私运与药库流出形成可追责的链条；逃走的人仍有姓名没有落卷。' : has(s, 'partial-trial') ? '官档只追究已有真档佐证的伪印案，毒案与盐路仍留疑点。' : '盐案没有因你这一生的选择自动大白。官府把现有材料装入案袋，江湖仍传着另一份说法。',
     c.resolved.assassin ? (c.npcAlive['gu-qinghe'] ? '顾清河躲过刺杀，仍须面对官盐亏空与自己妥协的代价。' : '顾清河死于那次刺杀。他的旧档仍在，无法再替后来的人作承诺。') : '顾清河的后事尚未进入你这段经历，案卷留空。',
     c.resolved.sister ? has(s, 'sister-safe') ? '苏小蝉已经脱离盐场控制，姐妹可以自己决定去留。' : '小蝉没有被你救出。苏晚棠仍在寻人，你不能把这段缺席写成团圆。' : '小蝉的去向尚未由你介入，未作团圆记载。',
     c.resolved.hunt ? c.npcAlive['shen-yanqiu'] ? '沈砚秋活过灭口之夜，病案和诊所还可以继续。' : '沈砚秋死于医馆夜袭，病案副本无法补回一个医者。' : '回春堂的灯还亮在你离去的时刻。',
     has(s, 'river-safe') ? '运药船被控制在封锁河湾或浅滩，沿河取水得以保全。' : has(s, 'river-poisoned') ? '沉船留下药害，沿岸仍须封井清理；沉没不是问题消失。' : '你尚未亲历运药船的末路，不替后来的人预写结果。',
-    `实际留存：${c.evidence.map(id => evidenceNames[id]).join('、') || '没有取得后续案卷材料'}。`,
+    `手中留存：${c.evidence.map(id => evidenceNames[id]).join('、') || '没有取得后续案卷材料'}。`,
   ];
 }
 export function lifeSummary(s: GameState) {
